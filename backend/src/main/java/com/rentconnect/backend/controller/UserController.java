@@ -4,6 +4,14 @@ import com.rentconnect.backend.dto.UserDto;
 import com.rentconnect.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import com.rentconnect.backend.security.JwtService;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 
 @RestController
 @RequestMapping("/api/users")
@@ -16,5 +24,24 @@ public class UserController {
     @PostMapping("/register")
     public String register(@RequestBody UserDto userDto) {
         return userService.registerUser(userDto);
+    }
+
+
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @PostMapping("/login")
+    public String authenticateAndGetToken(@RequestBody UserDto authRequest) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(authRequest.getEmail(), authRequest.getPassword())
+        );
+        if (authentication.isAuthenticated()) {
+            return jwtService.generateToken(authRequest.getEmail());
+        } else {
+            throw new UsernameNotFoundException("Invalid user request !");
+        }
     }
 }
