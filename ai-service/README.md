@@ -68,18 +68,20 @@ If face detection fails:
 
 SETUP INSTRUCTIONS
 
-1. Install required packages:
 
-python -m pip install -r requirements.txt
-
-
-2. Create Virtual Environment
+1. Create Virtual Environment
 
 python -m venv venv
 
-3. Activate the script 
+
+2. Activate the script 
 
 .\venv\Scripts\Activate.ps1
+
+
+3. Install required packages:
+
+python -m pip install -r requirements.txt
 
 
 4. Start the service:
