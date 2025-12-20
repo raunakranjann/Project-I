@@ -72,7 +72,17 @@ SETUP INSTRUCTIONS
 
 python -m pip install -r requirements.txt
 
-2. Start the service:
+
+2. Create Virtual Environment
+
+python -m venv venv
+
+3. Activate the script 
+
+.\venv\Scripts\Activate.ps1
+
+
+4. Start the service:
 
 uvicorn main:app --reload
 
