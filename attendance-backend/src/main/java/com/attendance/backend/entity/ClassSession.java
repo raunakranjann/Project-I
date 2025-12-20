@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "class_sessions")
 @Getter
@@ -19,8 +18,8 @@ public class ClassSession {
 
     private String subjectName;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "teacher_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "teacher_id", nullable = false)
     private Teacher teacher;
 
     private double latitude;
@@ -29,4 +28,7 @@ public class ClassSession {
 
     private LocalDateTime startTime;
     private LocalDateTime endTime;
+
+    @Column(nullable = false)
+    private boolean active = true;   // ✅ soft delete
 }

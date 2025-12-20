@@ -8,7 +8,7 @@ import com.attendance.backend.repository.AttendanceLogRepository;
 import com.attendance.backend.repository.ClassSessionRepository;
 import com.attendance.backend.repository.UserRepository;
 import com.attendance.backend.service.FaceVerificationService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,54 +22,74 @@ import java.time.LocalDateTime;
 @CrossOrigin(origins = "*")
 public class AttendanceController {
 
-    @Autowired
-    private FaceVerificationService faceService;
+    private static final String USER_IMAGE_DIR =
+            "D:/smart-attendance/uploads/users/";
 
-    @Autowired
-    private AttendanceLogRepository attendanceRepo;
+    private final FaceVerificationService faceService;
+    private final AttendanceLogRepository attendanceRepo;
+    private final ClassSessionRepository classRepo;
+    private final UserRepository userRepo;
 
-    @Autowired
-    private ClassSessionRepository classRepo;
+    public AttendanceController(
+            FaceVerificationService faceService,
+            AttendanceLogRepository attendanceRepo,
+            ClassSessionRepository classRepo,
+            UserRepository userRepo
+    ) {
+        this.faceService = faceService;
+        this.attendanceRepo = attendanceRepo;
+        this.classRepo = classRepo;
+        this.userRepo = userRepo;
+    }
 
-    @Autowired
-    private UserRepository userRepo;
-
+    // ======================================
+    // MARK ATTENDANCE (JWT REQUIRED)
+    // ======================================
     @PostMapping("/mark")
     public ApiResponse markAttendance(
-            @RequestParam Long userId,
+            Authentication authentication,
             @RequestParam Long classId,
             @RequestParam double latitude,
             @RequestParam double longitude,
             @RequestParam MultipartFile selfie
     ) throws Exception {
 
-        // 1️⃣ Load user
-        User user = userRepo.findById(userId)
+        // ---------- AUTH CHECK ----------
+        if (authentication == null || authentication.getPrincipal() == null) {
+            return ApiResponse.failed("Unauthorized");
+        }
+
+        Long studentId = (Long) authentication.getPrincipal();
+
+        // ---------- BASIC VALIDATION ----------
+        if (selfie == null || selfie.isEmpty()) {
+            return ApiResponse.failed("Selfie image is required");
+        }
+
+        User user = userRepo.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 2️⃣ Load class
         ClassSession session = classRepo.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
 
-        // 3️⃣ Prevent duplicate attendance (✅ CLASS-SCOPED)
-        if (attendanceRepo.existsByUserIdAndClassId(userId, classId)) {
-            return new ApiResponse(
-                    "FAIL",
-                    "Attendance already marked for this class"
-            );
+        if (!session.isActive()) {
+            return ApiResponse.failed("Class is no longer active");
         }
 
-        // 4️⃣ Time window check
+
+        // ---------- DUPLICATE CHECK ----------
+        if (attendanceRepo.existsByUserIdAndClassId(studentId, classId)) {
+            return ApiResponse.failed("Attendance already marked");
+        }
+
+        // ---------- TIME WINDOW ----------
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(session.getStartTime()) ||
                 now.isAfter(session.getEndTime())) {
-            return new ApiResponse(
-                    "FAIL",
-                    "Class is not active at this time"
-            );
+            return ApiResponse.failed("Class is not active");
         }
 
-        // 5️⃣ GPS radius check
+        // ---------- GPS CHECK ----------
         double distance = calculateDistance(
                 latitude,
                 longitude,
@@ -78,34 +98,30 @@ public class AttendanceController {
         );
 
         if (distance > session.getRadius()) {
-            return new ApiResponse("FAIL", "Outside classroom radius");
+            return ApiResponse.failed("Outside classroom radius");
         }
 
-        // 6️⃣ Load registered face
-        File registeredImageFile =
-                new File("D:/smart-attendance/uploads/users/" +
-                        user.getRollNo() + ".jpg");
+        // ---------- FACE VERIFICATION ----------
+        File registeredImage = new File(
+                USER_IMAGE_DIR + user.getRollNo() + ".jpg"
+        );
 
-        if (!registeredImageFile.exists()) {
-            return new ApiResponse("FAIL", "Registered face image not found");
+        if (!registeredImage.exists()) {
+            return ApiResponse.failed("Registered face image not found");
         }
 
-        byte[] registeredImageBytes =
-                Files.readAllBytes(registeredImageFile.toPath());
-
-        // 7️⃣ Face verification
-        boolean faceMatch = faceService.verifyFace(
-                registeredImageBytes,
+        boolean match = faceService.verifyFace(
+                Files.readAllBytes(registeredImage.toPath()),
                 selfie.getBytes()
         );
 
-        if (!faceMatch) {
-            return new ApiResponse("FAIL", "Face mismatch");
+        if (!match) {
+            return ApiResponse.failed("Face mismatch");
         }
 
-        // 8️⃣ Save attendance
+        // ---------- SAVE ATTENDANCE ----------
         AttendanceLog log = new AttendanceLog();
-        log.setUserId(userId);
+        log.setUserId(studentId);
         log.setClassId(classId);
         log.setTimestamp(LocalDateTime.now());
         log.setDate(LocalDate.now());
@@ -113,20 +129,14 @@ public class AttendanceController {
 
         attendanceRepo.save(log);
 
-        return new ApiResponse(
-                "SUCCESS",
-                "Attendance marked successfully"
-        );
+        return ApiResponse.success("Attendance marked successfully");
     }
 
-    // ===============================
-    // Distance calculation (Haversine)
-    // ===============================
+    // ======================================
+    // DISTANCE (HAVERSINE)
+    // ======================================
     private double calculateDistance(
-            double lat1,
-            double lon1,
-            double lat2,
-            double lon2
+            double lat1, double lon1, double lat2, double lon2
     ) {
         double R = 6371e3;
         double phi1 = Math.toRadians(lat1);

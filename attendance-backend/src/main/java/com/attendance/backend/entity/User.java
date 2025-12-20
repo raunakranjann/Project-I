@@ -22,7 +22,9 @@ public class User {
 
     private String password;
 
+    @Column(name = "device_id", unique = true)
     private String deviceId;
+
 
     private String photoUrl;
 }

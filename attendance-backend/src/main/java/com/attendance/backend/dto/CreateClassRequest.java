@@ -17,9 +17,7 @@ public class CreateClassRequest {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime endTime;
 
-    public Long getTeacherId() {
-        return teacherId;
-    }
+
 
     public String getSubjectName() {
         return subjectName;

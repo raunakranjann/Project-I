@@ -35,19 +35,22 @@ public class TeacherLoginActivity extends AppCompatActivity {
 
         usernameInput = findViewById(R.id.usernameInput);
         passwordInput = findViewById(R.id.passwordInput);
-        loginBtn = findViewById(R.id.loginBtn);   // ✅ FIXED
+        loginBtn = findViewById(R.id.loginBtn);
         loader = findViewById(R.id.loader);
         rememberMeCheck = findViewById(R.id.rememberMeCheck);
 
         prefs = getSharedPreferences("login_prefs", MODE_PRIVATE);
 
-        /* ---------- AUTO LOGIN (ONLY ON COLD START) ---------- */
+        // ---------- AUTO LOGIN (JWT + ROLE) ----------
         if (savedInstanceState == null) {
-            boolean isLoggedIn = prefs.getBoolean("teacher_logged_in", false);
-            if (isLoggedIn) {
+            String token = prefs.getString("auth_token", null);
+            String role  = prefs.getString("role", null);
+
+            if (token != null && "TEACHER".equals(role)) {
                 Intent i = new Intent(this, TeacherDashboardActivity.class);
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(i);
+                finish();
                 return;
             }
         }
@@ -61,7 +64,11 @@ public class TeacherLoginActivity extends AppCompatActivity {
         String password = passwordInput.getText().toString().trim();
 
         if (username.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Enter username and password", Toast.LENGTH_SHORT).show();
+            Toast.makeText(
+                    this,
+                    "Enter username and password",
+                    Toast.LENGTH_SHORT
+            ).show();
             return;
         }
 
@@ -71,7 +78,7 @@ public class TeacherLoginActivity extends AppCompatActivity {
         TeacherLoginRequest request =
                 new TeacherLoginRequest(username, password);
 
-        RetrofitClient.getApiService()
+        RetrofitClient.getApiService(this)
                 .teacherLogin(request)
                 .enqueue(new Callback<TeacherLoginResponse>() {
 
@@ -95,21 +102,26 @@ public class TeacherLoginActivity extends AppCompatActivity {
                         TeacherLoginResponse res = response.body();
 
                         Log.d(TAG,
-                                "Login response -> teacherId="
-                                        + res.getTeacherId()
-                                        + ", message="
-                                        + res.getMessage()
-                        );
+                                "Login response -> success="
+                                        + res.isSuccess()
+                                        + ", token="
+                                        + res.getToken());
 
-                        // ✅ SAME SUCCESS CHECK AS STUDENT LOGIN
-                        if (res.getTeacherId() != null && res.getTeacherId() > 0) {
+                        if (res.isSuccess() && res.getToken() != null) {
 
-                            if (rememberMeCheck.isChecked()) {
-                                prefs.edit()
-                                        .putBoolean("teacher_logged_in", true)
-                                        .putLong("teacher_id", res.getTeacherId())
-                                        .apply();
-                            }
+                            SharedPreferences.Editor editor = prefs.edit();
+
+                            // 🔐 ALWAYS SAVE JWT
+                            editor.putString("auth_token", res.getToken());
+                            editor.putString("role", "TEACHER");
+
+                            // 🔁 Remember-me only controls auto-login
+                            editor.putBoolean(
+                                    "remember_me",
+                                    rememberMeCheck.isChecked()
+                            );
+
+                            editor.apply();
 
                             Toast.makeText(
                                     TeacherLoginActivity.this,
@@ -125,23 +137,25 @@ public class TeacherLoginActivity extends AppCompatActivity {
                                     Intent.FLAG_ACTIVITY_NEW_TASK |
                                             Intent.FLAG_ACTIVITY_CLEAR_TASK
                             );
-                            intent.putExtra("teacherId", res.getTeacherId());
-
                             startActivity(intent);
+                            finish();
 
                         } else {
                             Toast.makeText(
                                     TeacherLoginActivity.this,
                                     res.getMessage() != null
                                             ? res.getMessage()
-                                            : "Invalid username or password",
+                                            : "Invalid credentials",
                                     Toast.LENGTH_SHORT
                             ).show();
                         }
                     }
 
                     @Override
-                    public void onFailure(Call<TeacherLoginResponse> call, Throwable t) {
+                    public void onFailure(
+                            Call<TeacherLoginResponse> call,
+                            Throwable t) {
+
                         loader.setVisibility(View.GONE);
                         loginBtn.setEnabled(true);
 

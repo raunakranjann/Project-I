@@ -4,8 +4,9 @@ import com.google.gson.annotations.SerializedName;
 
 public class ApiResponse {
 
-    @SerializedName("status")
-    private String status;
+    // ✅ MUST MATCH BACKEND JSON
+    @SerializedName("success")
+    private boolean success;
 
     @SerializedName("message")
     private String message;
@@ -14,29 +15,25 @@ public class ApiResponse {
     public ApiResponse() {
     }
 
-    // Optional convenience constructor
-    public ApiResponse(String status, String message) {
-        this.status = status;
+    public ApiResponse(boolean success, String message) {
+        this.success = success;
         this.message = message;
     }
 
-    public String getStatus() {
-        return status;
+    // ---------- GETTERS ----------
+    public boolean isSuccess() {
+        return success;
     }
 
     public String getMessage() {
         return message;
     }
 
-    // Helper methods (safe to ignore if not used)
-    public boolean isSuccess() {
-        return "SUCCESS".equalsIgnoreCase(status);
-    }
-
+    // ---------- DEBUG ----------
     @Override
     public String toString() {
         return "ApiResponse{" +
-                "status='" + status + '\'' +
+                "success=" + success +
                 ", message='" + message + '\'' +
                 '}';
     }

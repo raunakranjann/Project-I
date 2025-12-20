@@ -2,21 +2,14 @@ package com.smartattendance.app.network;
 
 public class TeacherLoginResponse {
 
-    private String status;
-    private String message;
+    private boolean success;
     private Long teacherId;
     private String teacherName;
+    private String token;   // ✅ JWT
+    private String message;
 
     public boolean isSuccess() {
-        return "SUCCESS".equalsIgnoreCase(status);
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public String getMessage() {
-        return message;
+        return success;
     }
 
     public Long getTeacherId() {
@@ -25,5 +18,13 @@ public class TeacherLoginResponse {
 
     public String getTeacherName() {
         return teacherName;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public String getMessage() {
+        return message;
     }
 }

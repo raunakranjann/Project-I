@@ -1,14 +1,16 @@
 package com.attendance.backend.controller;
 
-import com.attendance.backend.dto.ApiResponse;
-import com.attendance.backend.entity.Teacher;
 import com.attendance.backend.entity.User;
 import com.attendance.backend.repository.TeacherRepository;
 import com.attendance.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -23,8 +25,12 @@ public class AdminController {
     @Autowired
     private TeacherRepository teacherRepository;
 
+    // 🔐 ADD PASSWORD ENCODER
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     // =====================================================
-    // STUDENT REGISTRATION (EXISTING - UNCHANGED)
+    // STUDENT REGISTRATION (SECURE – FIXED)
     // =====================================================
 
     @GetMapping("/register")
@@ -41,7 +47,13 @@ public class AdminController {
             Model model
     ) {
         try {
-            // 1. Upload directory
+            // ---------- VALIDATION ----------
+            if (userRepository.findByRollNo(rollNo).isPresent()) {
+                model.addAttribute("message", "Roll number already exists");
+                return "admin/register";
+            }
+
+            // ---------- UPLOAD DIRECTORY ----------
             String uploadDirPath = "D:/smart-attendance/uploads/users";
             File uploadDir = new File(uploadDirPath);
 
@@ -49,17 +61,23 @@ public class AdminController {
                 uploadDir.mkdirs();
             }
 
-            // 2. Save face image
+            // ---------- SAVE FACE IMAGE ----------
             String imagePath = uploadDirPath + "/" + rollNo + ".jpg";
             File imageFile = new File(imagePath);
             photo.transferTo(imageFile);
 
-            // 3. Save student
+            // ---------- SAVE STUDENT (BCrypt PASSWORD) ----------
             User user = new User();
             user.setName(name);
             user.setRollNo(rollNo);
-            user.setPassword(password);
+
+            // 🔐 IMPORTANT FIX (THIS SOLVES YOUR ISSUE)
+            user.setPassword(passwordEncoder.encode(password));
+
             user.setPhotoUrl(imagePath);
+
+            // deviceId stays NULL → first login will bind it
+            user.setDeviceId(null);
 
             userRepository.save(user);
 
@@ -67,11 +85,12 @@ public class AdminController {
 
         } catch (Exception e) {
             e.printStackTrace();
-            model.addAttribute("message", "Registration failed: " + e.getMessage());
+            model.addAttribute(
+                    "message",
+                    "Registration failed: " + e.getMessage()
+            );
         }
 
         return "admin/register";
     }
-
-
 }

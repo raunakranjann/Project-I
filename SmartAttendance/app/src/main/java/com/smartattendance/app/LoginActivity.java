@@ -5,12 +5,13 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.widget.*;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.smartattendance.app.network.ApiService;
 import com.smartattendance.app.network.RetrofitClient;
-
-import java.util.Map;
+import com.smartattendance.app.network.StudentLoginRequest;
+import com.smartattendance.app.network.StudentLoginResponse;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -37,29 +38,23 @@ public class LoginActivity extends AppCompatActivity {
         rememberMeCheck = findViewById(R.id.rememberMeCheck);
 
         prefs = getSharedPreferences("login_prefs", MODE_PRIVATE);
-        apiService = RetrofitClient.getApiService();
+        apiService = RetrofitClient.getApiService(this);
 
-        /* ---------- AUTO LOGIN (ONLY ON COLD START) ---------- */
+        /* ---------- AUTO LOGIN ---------- */
         if (savedInstanceState == null) {
+            String token = prefs.getString("auth_token", null);
+            String role  = prefs.getString("role", null);
 
-            boolean teacherLoggedIn = prefs.getBoolean("teacher_logged_in", false);
-            boolean studentLoggedIn = prefs.getBoolean("is_logged_in", false);
+            if (token != null && role != null) {
+                Intent i = "TEACHER".equals(role)
+                        ? new Intent(this, TeacherDashboardActivity.class)
+                        : new Intent(this, DashboardActivity.class);
 
-            if (teacherLoggedIn) {
-                Intent i = new Intent(this, TeacherDashboardActivity.class);
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                startActivity(i);
-                return;
-            }
-
-            if (studentLoggedIn) {
-                Intent i = new Intent(this, DashboardActivity.class);
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(i);
                 return;
             }
         }
-
 
         /* ---------- STUDENT LOGIN ---------- */
         loginBtn.setOnClickListener(v -> {
@@ -77,47 +72,77 @@ public class LoginActivity extends AppCompatActivity {
                     Settings.Secure.ANDROID_ID
             );
 
-            apiService.login(roll, pass, deviceId)
-                    .enqueue(new Callback<Map<String, String>>() {
+            StudentLoginRequest request =
+                    new StudentLoginRequest(roll, pass, deviceId);
+
+            apiService.studentLogin(request)
+                    .enqueue(new Callback<StudentLoginResponse>() {
 
                         @Override
-                        public void onResponse(Call<Map<String, String>> call,
-                                               Response<Map<String, String>> response) {
+                        public void onResponse(
+                                Call<StudentLoginResponse> call,
+                                Response<StudentLoginResponse> response) {
 
                             if (response.isSuccessful()
                                     && response.body() != null
-                                    && "SUCCESS".equals(response.body().get("status"))) {
+                                    && response.body().isSuccess()) {
 
-                                if (rememberMeCheck.isChecked()) {
-                                    prefs.edit()
-                                            .putBoolean("is_logged_in", true)
-                                            .putString("roll_no", roll)
-                                            .apply();
-                                }
+                                StudentLoginResponse res = response.body();
 
-                                Intent i = new Intent(LoginActivity.this, DashboardActivity.class);
-                                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                SharedPreferences.Editor editor = prefs.edit();
+
+                                // 🔐 REMOVE ONLY CONFLICTING SESSION DATA
+                                editor.remove("teacher_id");
+
+                                // 🔐 SAVE STUDENT SESSION (ALWAYS)
+                                editor.putString("auth_token", res.getToken());
+                                editor.putString("role", "STUDENT");
+                                editor.putLong("student_id", res.getStudentId());
+
+                                // 🔁 Remember-me controls auto-login only
+                                editor.putBoolean(
+                                        "remember_me",
+                                        rememberMeCheck.isChecked()
+                                );
+
+                                editor.apply();
+
+                                Intent i = new Intent(
+                                        LoginActivity.this,
+                                        DashboardActivity.class
+                                );
+                                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
+                                        Intent.FLAG_ACTIVITY_CLEAR_TASK);
                                 startActivity(i);
 
                             } else {
-                                Toast.makeText(LoginActivity.this,
-                                        "Invalid credentials",
-                                        Toast.LENGTH_SHORT).show();
+                                Toast.makeText(
+                                        LoginActivity.this,
+                                        response.body() != null
+                                                ? response.body().getMessage()
+                                                : "Login failed",
+                                        Toast.LENGTH_SHORT
+                                ).show();
                             }
                         }
 
                         @Override
-                        public void onFailure(Call<Map<String, String>> call, Throwable t) {
-                            Toast.makeText(LoginActivity.this,
+                        public void onFailure(
+                                Call<StudentLoginResponse> call,
+                                Throwable t) {
+
+                            Toast.makeText(
+                                    LoginActivity.this,
                                     "Network error",
-                                    Toast.LENGTH_LONG).show();
+                                    Toast.LENGTH_LONG
+                            ).show();
                         }
                     });
         });
 
         /* ---------- FACULTY LOGIN ---------- */
-        facultyLoginBtn.setOnClickListener(v -> {
-            startActivity(new Intent(this, TeacherLoginActivity.class));
-        });
+        facultyLoginBtn.setOnClickListener(v ->
+                startActivity(new Intent(this, TeacherLoginActivity.class))
+        );
     }
 }

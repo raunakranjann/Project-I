@@ -2,21 +2,19 @@ package com.smartattendance.app.network;
 
 public class CreateClassRequest {
 
-    private Long teacherId;
     private String subjectName;
     private double latitude;
     private double longitude;
     private double radius;
-    private String startTime;   // ISO_LOCAL_DATE_TIME
-    private String endTime;     // ISO_LOCAL_DATE_TIME
+    private String startTime;
+    private String endTime;
 
-    // ✅ Required by Gson
+    // Required by Gson
     public CreateClassRequest() {
     }
 
-    // ✅ Used when sending request
+    // ✅ JWT-ONLY constructor (NO teacherId)
     public CreateClassRequest(
-            Long teacherId,
             String subjectName,
             double latitude,
             double longitude,
@@ -24,18 +22,12 @@ public class CreateClassRequest {
             String startTime,
             String endTime
     ) {
-        this.teacherId = teacherId;
         this.subjectName = subjectName;
         this.latitude = latitude;
         this.longitude = longitude;
         this.radius = radius;
         this.startTime = startTime;
         this.endTime = endTime;
-    }
-
-    // -------- Getters (important for debugging & reuse) --------
-    public Long getTeacherId() {
-        return teacherId;
     }
 
     public String getSubjectName() {

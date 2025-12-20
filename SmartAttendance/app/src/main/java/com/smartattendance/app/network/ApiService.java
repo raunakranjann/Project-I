@@ -1,7 +1,6 @@
 package com.smartattendance.app.network;
 
 import java.util.List;
-import java.util.Map;
 
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
@@ -11,28 +10,27 @@ import retrofit2.http.GET;
 import retrofit2.http.Multipart;
 import retrofit2.http.POST;
 import retrofit2.http.Part;
-import retrofit2.http.Query;
 
 public interface ApiService {
 
     // ===============================
-    // STUDENT SIDE
+    // STUDENT SIDE (JWT)
     // ===============================
 
+    // 🔐 Student login (JWT issued, device-bound)
+    @POST("auth/student/login")
+    Call<StudentLoginResponse> studentLogin(
+            @Body StudentLoginRequest request
+    );
+
+    // 📚 Get active classes
     @GET("classes/active")
     Call<List<ClassSessionModel>> getActiveClasses();
 
-    @POST("auth/login")
-    Call<Map<String, String>> login(
-            @Query("rollNo") String rollNo,
-            @Query("password") String password,
-            @Query("deviceId") String deviceId
-    );
-
+    // 🧠 Mark attendance (JWT identifies student)
     @Multipart
     @POST("attendance/mark")
     Call<ApiResponse> markAttendance(
-            @Part("userId") RequestBody userId,
             @Part("classId") RequestBody classId,
             @Part("latitude") RequestBody latitude,
             @Part("longitude") RequestBody longitude,
@@ -40,30 +38,22 @@ public interface ApiService {
     );
 
     // ===============================
-    // TEACHER SIDE
+    // TEACHER SIDE (JWT)
     // ===============================
 
+    // 🔐 Teacher login
     @POST("api/teacher/login")
     Call<TeacherLoginResponse> teacherLogin(
             @Body TeacherLoginRequest request
     );
 
-
-
-
-
-
-
-    @POST("/api/teacher/create-class")
+    // 🏫 Create class (JWT identifies teacher)
+    @POST("api/teacher/create-class")
     Call<ApiResponse> createClass(
             @Body CreateClassRequest request
     );
 
-    @GET("/api/teacher/classes")
-    Call<List<ClassSessionModel>> getTeacherClasses(
-            @Query("teacherId") Long teacherId
-    );
-
-
-
+    // 📋 Load teacher classes (JWT-based)
+    @GET("api/teacher/classes")
+    Call<List<ClassSessionModel>> getTeacherClasses();
 }

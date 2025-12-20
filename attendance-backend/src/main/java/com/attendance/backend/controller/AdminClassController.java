@@ -42,9 +42,16 @@ public class AdminClassController {
     // ===============================
     @GetMapping
     public String listClasses(Model model) {
-        model.addAttribute("classes", classRepo.findAll());
+        model.addAttribute(
+                "classes",
+                classRepo.findAll()
+                        .stream()
+                        .filter(ClassSession::isActive)
+                        .toList()
+        );
         return "admin/classes";
     }
+
 
     // ===============================
     // HANDLE CLASS CREATION
@@ -144,7 +151,15 @@ public class AdminClassController {
     // ===============================
     @GetMapping("/delete/{id}")
     public String deleteClass(@PathVariable Long id) {
-        classRepo.deleteById(id);
+
+        ClassSession session = classRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Class not found"));
+
+        session.setActive(false);   // ✅ soft delete
+        classRepo.save(session);
+
         return "redirect:/admin/classes";
     }
+
+
 }

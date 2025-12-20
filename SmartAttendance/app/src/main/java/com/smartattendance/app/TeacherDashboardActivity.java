@@ -3,7 +3,6 @@ package com.smartattendance.app;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
@@ -29,11 +28,8 @@ public class TeacherDashboardActivity extends AppCompatActivity {
     private ProgressBar loader;
     private TextView emptyText;
 
-    // ✅ ONLY CHANGE: btnLogout type fixed
     private Button btnCreateClass;
     private ImageButton btnLogout;
-
-    private long teacherId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,46 +45,48 @@ public class TeacherDashboardActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setHasFixedSize(true);
 
-        // ---------- SESSION RESOLUTION ----------
-        teacherId = getIntent().getLongExtra("teacherId", -1);
+        // ---------- JWT SESSION CHECK ----------
+        SharedPreferences prefs =
+                getSharedPreferences("login_prefs", MODE_PRIVATE);
 
-        if (teacherId <= 0) {
-            SharedPreferences prefs =
-                    getSharedPreferences("login_prefs", MODE_PRIVATE);
-            teacherId = prefs.getLong("teacher_id", -1);
-        }
+        String token = prefs.getString("auth_token", null);
+        String role = prefs.getString("role", null);
 
-        if (teacherId <= 0) {
-            Toast.makeText(this, "Session expired. Login again.", Toast.LENGTH_LONG).show();
+        if (token == null || !"TEACHER".equals(role)) {
+            Toast.makeText(this,
+                    "Session expired. Login again.",
+                    Toast.LENGTH_LONG).show();
             redirectToLogin();
             return;
         }
 
         // ---------- CREATE CLASS ----------
-        btnCreateClass.setOnClickListener(v -> {
-            Intent i = new Intent(this, CreateClassActivity.class);
-            i.putExtra("teacherId", teacherId);
-            startActivity(i);
-        });
+        btnCreateClass.setOnClickListener(v ->
+                startActivity(new Intent(
+                        TeacherDashboardActivity.this,
+                        CreateClassActivity.class
+                ))
+        );
 
-        // ---------- LOGOUT (same as student dashboard) ----------
+        // ---------- LOGOUT ----------
         btnLogout.setOnClickListener(v -> logout());
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        loadTeacherClasses(); // ✅ refresh after create class
+        loadTeacherClasses(); // refresh after create class
     }
 
     private void loadTeacherClasses() {
 
-        loader.setVisibility(View.VISIBLE);
-        recyclerView.setVisibility(View.GONE);
-        emptyText.setVisibility(View.GONE);
+        loader.setVisibility(ProgressBar.VISIBLE);
+        recyclerView.setVisibility(RecyclerView.GONE);
+        emptyText.setVisibility(TextView.GONE);
 
-        RetrofitClient.getApiService()
-                .getTeacherClasses(teacherId)
+        // ✅ JWT IDENTIFIES TEACHER (NO teacherId PARAM)
+        RetrofitClient.getApiService(this)
+                .getTeacherClasses()
                 .enqueue(new Callback<List<ClassSessionModel>>() {
 
                     @Override
@@ -96,11 +94,11 @@ public class TeacherDashboardActivity extends AppCompatActivity {
                             Call<List<ClassSessionModel>> call,
                             Response<List<ClassSessionModel>> response) {
 
-                        loader.setVisibility(View.GONE);
+                        loader.setVisibility(ProgressBar.GONE);
 
                         if (!response.isSuccessful() || response.body() == null) {
                             emptyText.setText("Failed to load classes");
-                            emptyText.setVisibility(View.VISIBLE);
+                            emptyText.setVisibility(TextView.VISIBLE);
                             return;
                         }
 
@@ -108,21 +106,21 @@ public class TeacherDashboardActivity extends AppCompatActivity {
 
                         if (classes.isEmpty()) {
                             emptyText.setText("No classes created yet");
-                            emptyText.setVisibility(View.VISIBLE);
+                            emptyText.setVisibility(TextView.VISIBLE);
                             return;
                         }
 
                         recyclerView.setAdapter(
                                 new TeacherClassAdapter(classes)
                         );
-                        recyclerView.setVisibility(View.VISIBLE);
+                        recyclerView.setVisibility(RecyclerView.VISIBLE);
                     }
 
                     @Override
                     public void onFailure(Call<List<ClassSessionModel>> call, Throwable t) {
-                        loader.setVisibility(View.GONE);
+                        loader.setVisibility(ProgressBar.GONE);
                         emptyText.setText("Network error");
-                        emptyText.setVisibility(View.VISIBLE);
+                        emptyText.setVisibility(TextView.VISIBLE);
                     }
                 });
     }
@@ -131,7 +129,6 @@ public class TeacherDashboardActivity extends AppCompatActivity {
         SharedPreferences prefs =
                 getSharedPreferences("login_prefs", MODE_PRIVATE);
         prefs.edit().clear().apply();
-
         redirectToLogin();
     }
 

@@ -3,9 +3,11 @@ package com.smartattendance.app;
 import android.Manifest;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.*;
 
@@ -30,6 +32,7 @@ import retrofit2.Response;
 public class CreateClassActivity extends AppCompatActivity {
 
     private static final int GPS_PERMISSION_CODE = 101;
+    private static final String TAG = "CreateClass";
 
     private EditText subjectInput, radiusInput, latitudeInput, longitudeInput;
     private Button btnStartTime, btnEndTime, btnFetchGps, createBtn;
@@ -37,9 +40,7 @@ public class CreateClassActivity extends AppCompatActivity {
     private CheckBox useGpsCheck;
     private ProgressBar loader;
 
-    private long teacherId;
     private LocalDateTime startTime, endTime;
-
     private Double gpsLat = null;
     private Double gpsLng = null;
 
@@ -48,14 +49,29 @@ public class CreateClassActivity extends AppCompatActivity {
     private final DateTimeFormatter formatter =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
-    // -----------------------------------------------------
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_class);
 
-        // UI
+        // ---------- SESSION CHECK (JWT + ROLE) ----------
+        SharedPreferences prefs =
+                getSharedPreferences("login_prefs", MODE_PRIVATE);
+
+        String token = prefs.getString("auth_token", null);
+        String role = prefs.getString("role", null);
+
+        if (token == null || !"TEACHER".equals(role)) {
+            Toast.makeText(
+                    this,
+                    "Session expired. Please login again.",
+                    Toast.LENGTH_SHORT
+            ).show();
+            finish();
+            return;
+        }
+
+        // ---------- UI ----------
         subjectInput = findViewById(R.id.subjectInput);
         radiusInput = findViewById(R.id.radiusInput);
         latitudeInput = findViewById(R.id.latitudeInput);
@@ -77,15 +93,6 @@ public class CreateClassActivity extends AppCompatActivity {
 
         locationClient = LocationServices.getFusedLocationProviderClient(this);
 
-        teacherId = getSharedPreferences("login_prefs", MODE_PRIVATE)
-                .getLong("teacher_id", -1);
-
-        if (teacherId <= 0) {
-            Toast.makeText(this, "Session expired. Please login again.", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
-
         btnStartTime.setOnClickListener(v -> pickDateTime(true));
         btnEndTime.setOnClickListener(v -> pickDateTime(false));
 
@@ -101,7 +108,6 @@ public class CreateClassActivity extends AppCompatActivity {
         });
 
         btnFetchGps.setOnClickListener(v -> fetchGps());
-
         createBtn.setOnClickListener(v -> createClass());
     }
 
@@ -120,10 +126,10 @@ public class CreateClassActivity extends AppCompatActivity {
 
                                     if (isStart) {
                                         startTime = dt;
-                                        startTimeText.setText(dt.toString());
+                                        startTimeText.setText(dt.format(formatter));
                                     } else {
                                         endTime = dt;
-                                        endTimeText.setText(dt.toString());
+                                        endTimeText.setText(dt.format(formatter));
                                     }
                                 },
                                 c.get(Calendar.HOUR_OF_DAY),
@@ -155,17 +161,21 @@ public class CreateClassActivity extends AppCompatActivity {
         locationClient.getLastLocation()
                 .addOnSuccessListener(this::handleLocation)
                 .addOnFailureListener(e ->
-                        Toast.makeText(this,
+                        Toast.makeText(
+                                this,
                                 "Unable to fetch GPS location",
-                                Toast.LENGTH_SHORT).show()
+                                Toast.LENGTH_SHORT
+                        ).show()
                 );
     }
 
     private void handleLocation(Location loc) {
         if (loc == null) {
-            Toast.makeText(this,
+            Toast.makeText(
+                    this,
                     "GPS unavailable. Turn on location.",
-                    Toast.LENGTH_SHORT).show();
+                    Toast.LENGTH_SHORT
+            ).show();
             return;
         }
 
@@ -175,9 +185,11 @@ public class CreateClassActivity extends AppCompatActivity {
         latitudeInput.setText(String.valueOf(gpsLat));
         longitudeInput.setText(String.valueOf(gpsLng));
 
-        Toast.makeText(this,
+        Toast.makeText(
+                this,
                 "Location fetched successfully",
-                Toast.LENGTH_SHORT).show();
+                Toast.LENGTH_SHORT
+        ).show();
     }
 
     // -----------------------------------------------------
@@ -206,45 +218,31 @@ public class CreateClassActivity extends AppCompatActivity {
         try {
             radius = Double.parseDouble(radiusStr);
         } catch (Exception e) {
-            Toast.makeText(this,
-                    "Invalid radius",
-                    Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Invalid radius", Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (useGpsCheck.isChecked()) {
             if (gpsLat == null || gpsLng == null) {
-                Toast.makeText(this,
-                        "Fetch GPS location first",
-                        Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Fetch GPS first", Toast.LENGTH_SHORT).show();
                 return;
             }
             lat = gpsLat;
             lng = gpsLng;
         } else {
-            String latStr = latitudeInput.getText().toString().trim();
-            String lngStr = longitudeInput.getText().toString().trim();
-
-            if (latStr.isEmpty() || lngStr.isEmpty()) {
-                Toast.makeText(this,
-                        "Latitude & Longitude required",
-                        Toast.LENGTH_SHORT).show();
-                return;
-            }
-
             try {
-                lat = Double.parseDouble(latStr);
-                lng = Double.parseDouble(lngStr);
+                lat = Double.parseDouble(latitudeInput.getText().toString().trim());
+                lng = Double.parseDouble(longitudeInput.getText().toString().trim());
             } catch (Exception e) {
                 Toast.makeText(this,
-                        "Invalid latitude or longitude",
+                        "Invalid latitude/longitude",
                         Toast.LENGTH_SHORT).show();
                 return;
             }
         }
 
+        // ✅ JWT-ONLY REQUEST
         CreateClassRequest req = new CreateClassRequest(
-                teacherId,
                 subject,
                 lat,
                 lng,
@@ -253,37 +251,39 @@ public class CreateClassActivity extends AppCompatActivity {
                 endTime.format(formatter)
         );
 
+        Log.d(TAG, "Creating class -> " + req.getSubjectName());
+
         loader.setVisibility(View.VISIBLE);
         createBtn.setEnabled(false);
 
-        RetrofitClient.getApiService()
+        RetrofitClient.getApiService(this)
                 .createClass(req)
                 .enqueue(new Callback<ApiResponse>() {
 
                     @Override
-                    public void onResponse(Call<ApiResponse> call,
-                                           Response<ApiResponse> response) {
+                    public void onResponse(
+                            Call<ApiResponse> call,
+                            Response<ApiResponse> response) {
 
                         loader.setVisibility(View.GONE);
                         createBtn.setEnabled(true);
 
-                        if (response.isSuccessful()
-                                && response.body() != null
-                                && response.body().isSuccess()) {
-
+                        if (!response.isSuccessful()) {
                             Toast.makeText(
                                     CreateClassActivity.this,
-                                    "Class created successfully",
+                                    "Server error: " + response.code(),
                                     Toast.LENGTH_SHORT
                             ).show();
-                            finish();
-                        } else {
-                            Toast.makeText(
-                                    CreateClassActivity.this,
-                                    "Failed to create class",
-                                    Toast.LENGTH_SHORT
-                            ).show();
+                            return;
                         }
+
+                        Toast.makeText(
+                                CreateClassActivity.this,
+                                "Class created successfully",
+                                Toast.LENGTH_SHORT
+                        ).show();
+
+                        finish();
                     }
 
                     @Override

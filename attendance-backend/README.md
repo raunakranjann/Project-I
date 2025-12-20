@@ -84,7 +84,7 @@ application.properties
 
 Example:
 
-spring.datasource.url=jdbc:postgresql://localhost:5432/smart_attendance
+spring.datasource.url=jdbc:postgresql://localhost:5432/smart_attendance_db
 spring.datasource.username=your_username
 spring.datasource.password=your_password
 

@@ -18,8 +18,13 @@ public class ClassController {
         this.classRepo = classRepo;
     }
 
+    // =========================================
+    // STUDENT → FETCH ACTIVE CLASSES (JWT)
+    // =========================================
     @GetMapping("/active")
     public List<ClassSessionDto> getActiveClasses() {
+
+        // Returns empty list if no active classes
         return classRepo.findActiveClassesForStudents(
                 LocalDateTime.now()
         );

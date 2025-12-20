@@ -1,6 +1,7 @@
 package com.smartattendance.app;
 
 import android.Manifest;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
@@ -35,7 +36,6 @@ import retrofit2.*;
 
 public class AttendanceActivity extends AppCompatActivity {
 
-    // UI
     private PreviewView cameraPreview;
     private TextView livenessInstruction, blinkStatus;
     private Button markAttendanceBtn;
@@ -43,24 +43,19 @@ public class AttendanceActivity extends AppCompatActivity {
     private EditText latitudeInput, longitudeInput;
     private FrameLayout loaderOverlay;
 
-    // Camera & ML
     private ExecutorService cameraExecutor;
     private FaceDetector faceDetector;
 
-    // Liveness
     private int blinkCount = 0;
     private boolean wasEyeOpen = true;
     private boolean livenessVerified = false;
     private Bitmap finalSelfie;
 
-    // Location
     private double latitude = 0.0;
     private double longitude = 0.0;
     private FusedLocationProviderClient locationClient;
 
-    // Class (FROM DASHBOARD)
     private long classId;
-    private double classLat, classLng, classRadius;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,7 +63,6 @@ public class AttendanceActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_attendance);
 
-        // Bind UI
         cameraPreview = findViewById(R.id.cameraPreview);
         livenessInstruction = findViewById(R.id.livenessInstruction);
         blinkStatus = findViewById(R.id.blinkStatus);
@@ -84,14 +78,24 @@ public class AttendanceActivity extends AppCompatActivity {
         cameraExecutor = Executors.newSingleThreadExecutor();
         locationClient = LocationServices.getFusedLocationProviderClient(this);
 
-        // ✅ READ CLASS DATA
         classId = getIntent().getLongExtra("classId", -1);
-        classLat = getIntent().getDoubleExtra("latitude", 0);
-        classLng = getIntent().getDoubleExtra("longitude", 0);
-        classRadius = getIntent().getDoubleExtra("radius", 0);
-
         if (classId <= 0) {
             Toast.makeText(this, "Invalid class", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        // 🔐 JWT SESSION CHECK
+        SharedPreferences prefs =
+                getSharedPreferences("login_prefs", MODE_PRIVATE);
+
+        String token = prefs.getString("auth_token", null);
+        String role  = prefs.getString("role", null);
+
+        if (token == null || !"STUDENT".equals(role)) {
+            Toast.makeText(this,
+                    "Session expired. Please login again.",
+                    Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -154,10 +158,10 @@ public class AttendanceActivity extends AppCompatActivity {
             return;
         }
 
-        InputImage image =
-                InputImage.fromMediaImage(
-                        imageProxy.getImage(),
-                        imageProxy.getImageInfo().getRotationDegrees());
+        InputImage image = InputImage.fromMediaImage(
+                imageProxy.getImage(),
+                imageProxy.getImageInfo().getRotationDegrees()
+        );
 
         faceDetector.process(image)
                 .addOnSuccessListener(faces -> {
@@ -179,7 +183,9 @@ public class AttendanceActivity extends AppCompatActivity {
                         wasEyeOpen = true;
 
                         runOnUiThread(() ->
-                                blinkStatus.setText("Blink count: " + blinkCount + " / 3"));
+                                blinkStatus.setText(
+                                        "Blink count: " + blinkCount + " / 3"
+                                ));
 
                         if (blinkCount >= 3) {
                             livenessVerified = true;
@@ -233,8 +239,25 @@ public class AttendanceActivity extends AppCompatActivity {
         if (finalSelfie == null) return;
 
         if (!locationSwitch.isChecked()) {
-            latitude = Double.parseDouble(latitudeInput.getText().toString());
-            longitude = Double.parseDouble(longitudeInput.getText().toString());
+
+            if (latitudeInput.getText().toString().isEmpty()
+                    || longitudeInput.getText().toString().isEmpty()) {
+
+                Toast.makeText(this,
+                        "Enter latitude and longitude",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            try {
+                latitude = Double.parseDouble(latitudeInput.getText().toString());
+                longitude = Double.parseDouble(longitudeInput.getText().toString());
+            } catch (Exception e) {
+                Toast.makeText(this,
+                        "Invalid coordinates",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
         }
 
         loaderOverlay.setVisibility(View.VISIBLE);
@@ -251,29 +274,44 @@ public class AttendanceActivity extends AppCompatActivity {
                                 stream.toByteArray(),
                                 MediaType.parse("image/jpeg")));
 
-        RetrofitClient.getApiService()
+        RetrofitClient.getApiService(this)
                 .markAttendance(
-                        RequestBody.create("1", MediaType.parse("text/plain")),
-                        RequestBody.create(String.valueOf(classId),
+                        RequestBody.create(
+                                String.valueOf(classId),
                                 MediaType.parse("text/plain")),
-                        RequestBody.create(String.valueOf(latitude),
+                        RequestBody.create(
+                                String.valueOf(latitude),
                                 MediaType.parse("text/plain")),
-                        RequestBody.create(String.valueOf(longitude),
+                        RequestBody.create(
+                                String.valueOf(longitude),
                                 MediaType.parse("text/plain")),
                         selfie
                 )
                 .enqueue(new Callback<ApiResponse>() {
+
                     @Override
-                    public void onResponse(Call<ApiResponse> call,
-                                           Response<ApiResponse> response) {
+                    public void onResponse(
+                            Call<ApiResponse> call,
+                            Response<ApiResponse> response) {
 
                         loaderOverlay.setVisibility(View.GONE);
+                        markAttendanceBtn.setEnabled(true);
+
+                        if (response.code() == 401) {
+                            Toast.makeText(
+                                    AttendanceActivity.this,
+                                    "Session expired. Login again.",
+                                    Toast.LENGTH_LONG).show();
+                            finish();
+                            return;
+                        }
 
                         if (response.body() != null) {
                             Toast.makeText(
                                     AttendanceActivity.this,
                                     response.body().getMessage(),
                                     Toast.LENGTH_LONG).show();
+                            finish();
                         }
                     }
 
@@ -281,6 +319,7 @@ public class AttendanceActivity extends AppCompatActivity {
                     public void onFailure(Call<ApiResponse> call, Throwable t) {
                         loaderOverlay.setVisibility(View.GONE);
                         markAttendanceBtn.setEnabled(true);
+
                         Toast.makeText(
                                 AttendanceActivity.this,
                                 "Attendance failed",
@@ -289,7 +328,6 @@ public class AttendanceActivity extends AppCompatActivity {
                 });
     }
 
-    // ================= PERMISSIONS =================
     private void requestPermissions() {
         ActivityCompat.requestPermissions(
                 this,
