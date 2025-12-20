@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="max-w-7xl mx-auto mt-10 bg-white rounded-xl shadow-lg p-8">
+
+    <!-- HEADER -->
+    <div class="flex justify-between items-center border-b pb-4 mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">
+            Welcome, Admin</span>
+        </h1>
+
+        <form th:action="@{/admin/logout}" method="post">
+            <button
+                    class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+                Logout
+            </button>
+        </form>
+    </div>
+
+    <!-- STATS -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+
+        <div class="bg-blue-50 p-6 rounded-lg shadow text-center">
+            <h3 class="text-lg font-semibold text-gray-700">Total Users</h3>
+            <p class="text-4xl font-bold text-blue-600 mt-2"
+               th:text="${totalUsers}">0</p>
+        </div>
+
+        <div class="bg-green-50 p-6 rounded-lg shadow text-center">
+            <h3 class="text-lg font-semibold text-gray-700">Total Classes</h3>
+            <p class="text-4xl font-bold text-green-600 mt-2"
+               th:text="${totalClasses}">0</p>
+        </div>
+
+        <div class="bg-purple-50 p-6 rounded-lg shadow text-center">
+            <h3 class="text-lg font-semibold text-gray-700">Today Attendance</h3>
+            <p class="text-4xl font-bold text-purple-600 mt-2"
+               th:text="${todayAttendance}">0</p>
+        </div>
+
+    </div>
+
+    <!-- QUICK ACTIONS -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+
+        <a href="/admin/register"
+           class="bg-blue-600 text-white text-center py-4 rounded-lg shadow hover:bg-blue-700 transition">
+            Register Student
+        </a>
+
+        <a th:href="@{/admin/teachers/new}"
+           style="
+       display: inline-block;
+       padding: 10px 18px;
+       background-color: #223344;
+       color: #ffffff;
+       text-decoration: none;
+       border-radius: 6px;
+       font-weight: bold;
+   ">
+            ➕ Create Teacher
+        </a>
+
+
+        <a href="/admin/classes"
+           class="bg-gray-700 text-white text-center py-4 rounded-lg shadow hover:bg-gray-800 transition">
+            Manage Classes
+        </a>
+
+        <a href="/admin/attendance"
+           class="bg-green-600 text-white text-center py-4 rounded-lg shadow hover:bg-green-700 transition">
+            View Attendance
+        </a>
+
+    </div>
+
+    <!-- OPTIONAL: CLASS TABLE -->
+    <div th:if="${classes != null}">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-800">
+            Active / Recent Classes
+        </h2>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full border border-gray-200">
+                <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-2 border">Subject</th>
+                    <th class="px-4 py-2 border">Start Time</th>
+                    <th class="px-4 py-2 border">End Time</th>
+                    <th class="px-4 py-2 border">Radius (m)</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="c : ${classes}" class="hover:bg-gray-50">
+                    <td class="px-4 py-2 border" th:text="${c.subjectName}"></td>
+                    <td class="px-4 py-2 border" th:text="${c.startTime}"></td>
+                    <td class="px-4 py-2 border" th:text="${c.endTime}"></td>
+                    <td class="px-4 py-2 border" th:text="${c.radius}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

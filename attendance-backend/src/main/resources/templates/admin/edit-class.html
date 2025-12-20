@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Edit Class Session</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            background-color: #f4f6f8;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body class="p-6">
+
+<!-- HEADER -->
+<div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-semibold text-gray-800">
+        Edit Class Session
+    </h2>
+
+    <a href="/admin/classes"
+       class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+        Back to Classes
+    </a>
+</div>
+
+<!-- FORM CARD -->
+<div class="max-w-xl bg-white rounded-lg shadow p-6">
+
+    <form method="post" th:action="@{/admin/classes/edit}" class="space-y-4">
+
+        <input type="hidden" name="id" th:value="${classSession.id}" />
+
+        <select name="teacherId" required>
+            <option value="">Select Teacher</option>
+            <th:block th:each="t : ${teachers}">
+                <option th:value="${t.id}" th:text="${t.name}"></option>
+            </th:block>
+        </select>
+
+
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                Subject Name
+            </label>
+            <input type="text"
+                   name="subjectName"
+                   th:value="${classSession.subjectName}"
+                   required
+                   class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"/>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Latitude
+                </label>
+                <input type="number"
+                       step="any"
+                       name="latitude"
+                       th:value="${classSession.latitude}"
+                       required
+                       class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"/>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Longitude
+                </label>
+                <input type="number"
+                       step="any"
+                       name="longitude"
+                       th:value="${classSession.longitude}"
+                       required
+                       class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"/>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                Radius (meters)
+            </label>
+            <input type="number"
+                   name="radius"
+                   th:value="${classSession.radius}"
+                   required
+                   class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"/>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                Start Time
+            </label>
+            <input type="datetime-local"
+                   name="startTime"
+                   th:value="${#temporals.format(classSession.startTime, 'yyyy-MM-dd''T''HH:mm')}"
+                   required
+                   class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"/>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                End Time
+            </label>
+            <input type="datetime-local"
+                   name="endTime"
+                   th:value="${#temporals.format(classSession.endTime, 'yyyy-MM-dd''T''HH:mm')}"
+                   required
+                   class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"/>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="flex justify-end gap-3 pt-4">
+            <a href="/admin/classes"
+               class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                Cancel
+            </a>
+
+            <button type="submit"
+                    class="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700">
+                Update Class
+            </button>
+        </div>
+
+    </form>
+</div>
+
+</body>
+</html>

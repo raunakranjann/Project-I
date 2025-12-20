@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Attendance Report</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            background-color: #f4f6f8;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body class="p-6">
+
+<!-- HEADER -->
+<div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-semibold text-gray-800">
+        Attendance Report
+    </h2>
+
+    <a href="/admin/dashboard"
+       class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+        Back to Dashboard
+    </a>
+</div>
+
+<!-- TABLE CARD -->
+<div class="bg-white rounded-lg shadow overflow-x-auto">
+
+    <table class="min-w-full border-collapse">
+        <thead class="bg-gray-100">
+        <tr>
+            <th class="px-4 py-3 border text-sm font-semibold text-gray-700">User ID</th>
+            <th class="px-4 py-3 border text-sm font-semibold text-gray-700">Roll No</th>
+            <th class="px-4 py-3 border text-sm font-semibold text-gray-700">Student Name</th>
+
+            <th class="px-4 py-3 border text-sm font-semibold text-gray-700">Class ID</th>
+            <th class="px-4 py-3 border text-sm font-semibold text-gray-700">Subject</th>
+            <th class="px-4 py-3 border text-sm font-semibold text-gray-700">Teacher</th>
+
+            <th class="px-4 py-3 border text-sm font-semibold text-gray-700">Date</th>
+            <th class="px-4 py-3 border text-sm font-semibold text-gray-700">Time</th>
+            <th class="px-4 py-3 border text-sm font-semibold text-gray-700">Status</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr th:each="a : ${records}"
+            class="hover:bg-gray-50">
+
+            <!-- USER -->
+            <td class="px-4 py-2 border text-sm" th:text="${a.userId}"></td>
+            <td class="px-4 py-2 border text-sm" th:text="${a.rollNo}"></td>
+            <td class="px-4 py-2 border text-sm" th:text="${a.userName}"></td>
+
+            <!-- CLASS -->
+            <td class="px-4 py-2 border text-sm" th:text="${a.classId}"></td>
+            <td class="px-4 py-2 border text-sm" th:text="${a.subjectName}"></td>
+            <td class="px-4 py-2 border text-sm" th:text="${a.teacherName}"></td>
+
+            <!-- ATTENDANCE -->
+            <td class="px-4 py-2 border text-sm" th:text="${a.date}"></td>
+            <td class="px-4 py-2 border text-sm" th:text="${a.timestamp}"></td>
+
+            <td class="px-4 py-2 border text-sm font-semibold"
+                th:text="${a.status}"
+                th:classappend="
+                    ${a.status == 'PRESENT'} ? 'text-green-600' :
+                    (${a.status == 'ABSENT'} ? 'text-red-600' : 'text-gray-600')
+                ">
+            </td>
+        </tr>
+
+        <!-- EMPTY STATE -->
+        <tr th:if="${#lists.isEmpty(records)}">
+            <td colspan="9"
+                class="text-center py-6 text-gray-500">
+                No attendance records found.
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Class Sessions</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            background-color: #f4f6f8;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body class="p-6">
+
+<!-- HEADER -->
+<div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-semibold text-gray-800">
+        Class Sessions
+    </h2>
+
+    <a href="/admin/dashboard"
+       class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+        Back to Dashboard
+    </a>
+</div>
+
+<!-- TABLE CARD -->
+<div class="bg-white rounded-lg shadow p-6">
+
+    <table class="w-full border-collapse">
+        <thead>
+        <tr class="bg-gray-100 text-left">
+            <th class="p-3 border">ID</th>
+            <th class="p-3 border">Subject</th>
+            <th class="p-3 border">Start Time</th>
+            <th class="p-3 border">End Time</th>
+            <th class="p-3 border text-center">Actions</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr th:each="c : ${classes}" class="hover:bg-gray-50">
+            <td class="p-3 border" th:text="${c.id}"></td>
+            <td class="p-3 border font-medium" th:text="${c.subjectName}"></td>
+            <td class="p-3 border" th:text="${c.startTime}"></td>
+            <td class="p-3 border" th:text="${c.endTime}"></td>
+
+            <td class="p-3 border text-center space-x-2">
+                <a th:href="@{/admin/classes/edit/{id}(id=${c.id})}"
+                   class="inline-block bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">
+                    Edit
+                </a>
+
+                <a th:href="@{/admin/classes/delete/{id}(id=${c.id})}"
+                   onclick="return confirm('Delete this class?')"
+                   class="inline-block bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">
+                    Delete
+                </a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- EMPTY STATE -->
+    <div th:if="${#lists.isEmpty(classes)}"
+         class="text-center text-gray-500 py-6">
+        No class sessions available.
+    </div>
+</div>
+
+</body>
+</html>
