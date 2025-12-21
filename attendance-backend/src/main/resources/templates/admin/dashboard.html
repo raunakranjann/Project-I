@@ -6,26 +6,27 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-gray-100">
+<body class="bg-gray-100 min-h-screen">
 
 <div class="max-w-7xl mx-auto mt-10 bg-white rounded-xl shadow-lg p-8">
 
     <!-- HEADER -->
-    <div class="flex justify-between items-center border-b pb-4 mb-6">
+    <div class="flex flex-col md:flex-row justify-between items-center border-b pb-4 mb-8">
         <h1 class="text-3xl font-bold text-gray-800">
-            Welcome, Admin</span>
+            Welcome, <span class="text-blue-600">Admin</span>
         </h1>
 
-        <form th:action="@{/admin/logout}" method="post">
+        <!-- CORRECT LOGOUT -->
+        <form th:action="@{/logout}" method="post" class="mt-4 md:mt-0">
             <button
-                    class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+                    class="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition font-semibold">
                 Logout
             </button>
         </form>
     </div>
 
-    <!-- STATS -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+    <!-- STATISTICS -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
 
         <div class="bg-blue-50 p-6 rounded-lg shadow text-center">
             <h3 class="text-lg font-semibold text-gray-700">Total Users</h3>
@@ -48,48 +49,40 @@
     </div>
 
     <!-- QUICK ACTIONS -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-12">
 
-        <a href="/admin/register"
-           class="bg-blue-600 text-white text-center py-4 rounded-lg shadow hover:bg-blue-700 transition">
+        <a th:href="@{/admin/register}"
+           class="bg-blue-600 text-white text-center py-4 rounded-lg shadow hover:bg-blue-700 transition font-semibold">
             Register Student
         </a>
 
         <a th:href="@{/admin/teachers/new}"
-           style="
-       display: inline-block;
-       padding: 10px 18px;
-       background-color: #223344;
-       color: #ffffff;
-       text-decoration: none;
-       border-radius: 6px;
-       font-weight: bold;
-   ">
-            ➕ Create Teacher
+           class="bg-slate-800 text-white text-center py-4 rounded-lg shadow hover:bg-slate-900 transition font-semibold">
+            Create Teacher
         </a>
 
-
-        <a href="/admin/classes"
-           class="bg-gray-700 text-white text-center py-4 rounded-lg shadow hover:bg-gray-800 transition">
+        <a th:href="@{/admin/classes}"
+           class="bg-gray-700 text-white text-center py-4 rounded-lg shadow hover:bg-gray-800 transition font-semibold">
             Manage Classes
         </a>
 
-        <a href="/admin/attendance"
-           class="bg-green-600 text-white text-center py-4 rounded-lg shadow hover:bg-green-700 transition">
+        <!-- MATCHES AttendanceController -->
+        <a th:href="@{/admin/attendance}"
+           class="bg-green-600 text-white text-center py-4 rounded-lg shadow hover:bg-green-700 transition font-semibold">
             View Attendance
         </a>
 
     </div>
 
-    <!-- OPTIONAL: CLASS TABLE -->
-    <div th:if="${classes != null}">
+    <!-- CLASS TABLE -->
+    <div>
         <h2 class="text-2xl font-semibold mb-4 text-gray-800">
             Active / Recent Classes
         </h2>
 
-        <div class="overflow-x-auto">
-            <table class="min-w-full border border-gray-200">
-                <thead class="bg-gray-50">
+        <div th:if="${classes != null and !classes.isEmpty()}" class="overflow-x-auto">
+            <table class="min-w-full border border-gray-200 rounded-lg overflow-hidden">
+                <thead class="bg-gray-100">
                 <tr>
                     <th class="px-4 py-2 border">Subject</th>
                     <th class="px-4 py-2 border">Start Time</th>
@@ -106,6 +99,12 @@
                 </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- EMPTY STATE -->
+        <div th:if="${classes == null or classes.isEmpty()}"
+             class="text-center text-gray-500 mt-6">
+            No classes found.
         </div>
     </div>
 

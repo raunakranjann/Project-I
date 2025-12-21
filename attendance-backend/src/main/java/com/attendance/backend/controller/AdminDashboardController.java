@@ -3,7 +3,6 @@ package com.attendance.backend.controller;
 import com.attendance.backend.repository.AttendanceLogRepository;
 import com.attendance.backend.repository.ClassSessionRepository;
 import com.attendance.backend.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,14 +14,19 @@ import java.time.LocalDate;
 @RequestMapping("/admin")
 public class AdminDashboardController {
 
-    @Autowired
-    private UserRepository userRepo;
+    private final UserRepository userRepo;
+    private final ClassSessionRepository classRepo;
+    private final AttendanceLogRepository attendanceRepo;
 
-    @Autowired
-    private ClassSessionRepository classRepo;
-
-    @Autowired
-    private AttendanceLogRepository attendanceRepo;
+    public AdminDashboardController(
+            UserRepository userRepo,
+            ClassSessionRepository classRepo,
+            AttendanceLogRepository attendanceRepo
+    ) {
+        this.userRepo = userRepo;
+        this.classRepo = classRepo;
+        this.attendanceRepo = attendanceRepo;
+    }
 
     // ================= DASHBOARD =================
     @GetMapping("/dashboard")
@@ -35,23 +39,10 @@ public class AdminDashboardController {
                 attendanceRepo.countByDate(LocalDate.now())
         );
 
-        // Optional: recent or all classes (safe)
+        // Optional: show recent / all classes
         model.addAttribute("classes", classRepo.findAll());
 
-        // ✅ MUST MATCH: templates/admin/dashboard.html
+        // MUST MATCH: templates/admin/dashboard.html
         return "admin/dashboard";
-    }
-
-    // ================= ATTENDANCE REPORT =================
-    @GetMapping("/attendance")
-    public String viewAttendance(Model model) {
-
-        model.addAttribute(
-                "records",
-                attendanceRepo.fetchAttendanceReport()
-        );
-
-        // ✅ MUST MATCH: templates/admin/attendance.html
-        return "admin/attendance";
     }
 }

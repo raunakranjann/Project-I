@@ -16,7 +16,7 @@ public class AttendanceBackendApplication {
     }
 
     @Bean
-    CommandLineRunner createAdmin(
+    public CommandLineRunner createAdmin(
             AdminRepository repo,
             PasswordEncoder encoder) {
 
@@ -30,4 +30,3 @@ public class AttendanceBackendApplication {
         };
     }
 }
-

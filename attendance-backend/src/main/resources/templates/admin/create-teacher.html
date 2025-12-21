@@ -1,21 +1,107 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="https://www.thymeleaf.org/extras/spring-security">
+
 <head>
-    <title>Create Teacher</title>
+    <meta charset="UTF-8">
+    <title>Admin | Create Teacher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
 
-<h2>Create Teacher</h2>
+<body class="bg-gray-100 min-h-screen">
 
-<form method="post" th:action="@{/admin/teachers}">
-    <input type="text" name="username" placeholder="Username" required /><br><br>
-    <input type="text" name="name" placeholder="Teacher Name" required /><br><br>
-    <input type="password" name="password" placeholder="Password" required /><br><br>
+<div class="max-w-4xl mx-auto mt-10 bg-white rounded-xl shadow-lg p-8">
 
-    <button type="submit">Create Teacher</button>
-</form>
+    <!-- HEADER -->
+    <div class="flex flex-col md:flex-row justify-between items-center border-b pb-4 mb-8">
+        <h1 class="text-2xl font-bold text-gray-800">
+            Create Teacher
+        </h1>
 
-<p th:text="${message}"></p>
+        <div class="flex items-center gap-4 mt-4 md:mt-0">
+            <span class="text-sm text-gray-600">
+                Logged in as Admin
+            </span>
+
+            <a th:href="@{/admin/dashboard}"
+               class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition">
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- FORM -->
+    <div class="max-w-xl mx-auto">
+        <form method="post"
+              th:action="@{/admin/teachers}"
+              class="space-y-6">
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">
+                    Username
+                </label>
+                <input type="text" name="username" required
+                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">
+                    Teacher Name
+                </label>
+                <input type="text" name="name" required
+                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">
+                    Password
+                </label>
+                <input type="password" name="password" required
+                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <div class="flex justify-end gap-4">
+                <a th:href="@{/admin/dashboard}"
+                   class="px-5 py-2 rounded-lg bg-gray-300 text-gray-800 hover:bg-gray-400 transition">
+                    Cancel
+                </a>
+
+                <button type="submit"
+                        class="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition font-semibold">
+                    Create Teacher
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ✅ SUCCESS ALERT POPUP -->
+<div th:if="${message}"
+     id="successModal"
+     class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+
+    <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-md text-center">
+        <h2 class="text-xl font-bold text-green-600 mb-2">
+            Success
+        </h2>
+
+        <p class="text-gray-700 mb-6" th:text="${message}">
+            Teacher created successfully
+        </p>
+
+        <button onclick="closeModal()"
+                class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold">
+            OK
+        </button>
+    </div>
+</div>
+
+<script>
+    function closeModal() {
+        document.getElementById('successModal').style.display = 'none';
+    }
+</script>
 
 </body>
 </html>
