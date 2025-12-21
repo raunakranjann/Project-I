@@ -21,7 +21,6 @@ public class LoginActivity extends AppCompatActivity {
 
     private EditText rollNo, password;
     private Button loginBtn, facultyLoginBtn;
-    private CheckBox rememberMeCheck;
 
     private SharedPreferences prefs;
     private ApiService apiService;
@@ -35,22 +34,23 @@ public class LoginActivity extends AppCompatActivity {
         password = findViewById(R.id.password);
         loginBtn = findViewById(R.id.loginBtn);
         facultyLoginBtn = findViewById(R.id.facultyLoginBtn);
-        rememberMeCheck = findViewById(R.id.rememberMeCheck);
 
         prefs = getSharedPreferences("login_prefs", MODE_PRIVATE);
         apiService = RetrofitClient.getApiService(this);
 
-        /* ---------- AUTO LOGIN ---------- */
+        /* ---------- AUTO LOGIN USING JWT ---------- */
         if (savedInstanceState == null) {
             String token = prefs.getString("auth_token", null);
             String role  = prefs.getString("role", null);
 
             if (token != null && role != null) {
+
                 Intent i = "TEACHER".equals(role)
                         ? new Intent(this, TeacherDashboardActivity.class)
                         : new Intent(this, DashboardActivity.class);
 
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
+                        Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(i);
                 return;
             }
@@ -63,7 +63,9 @@ public class LoginActivity extends AppCompatActivity {
             String pass = password.getText().toString().trim();
 
             if (roll.isEmpty() || pass.isEmpty()) {
-                Toast.makeText(this, "Enter all fields", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this,
+                        "Enter all fields",
+                        Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -91,19 +93,13 @@ public class LoginActivity extends AppCompatActivity {
 
                                 SharedPreferences.Editor editor = prefs.edit();
 
-                                // 🔐 REMOVE ONLY CONFLICTING SESSION DATA
+                                // 🔐 CLEAR TEACHER SESSION (SAFETY)
                                 editor.remove("teacher_id");
 
-                                // 🔐 SAVE STUDENT SESSION (ALWAYS)
+                                // 🔐 SAVE JWT SESSION (ALWAYS)
                                 editor.putString("auth_token", res.getToken());
                                 editor.putString("role", "STUDENT");
                                 editor.putLong("student_id", res.getStudentId());
-
-                                // 🔁 Remember-me controls auto-login only
-                                editor.putBoolean(
-                                        "remember_me",
-                                        rememberMeCheck.isChecked()
-                                );
 
                                 editor.apply();
 
@@ -142,7 +138,9 @@ public class LoginActivity extends AppCompatActivity {
 
         /* ---------- FACULTY LOGIN ---------- */
         facultyLoginBtn.setOnClickListener(v ->
-                startActivity(new Intent(this, TeacherLoginActivity.class))
+                startActivity(
+                        new Intent(this, TeacherLoginActivity.class)
+                )
         );
     }
 }

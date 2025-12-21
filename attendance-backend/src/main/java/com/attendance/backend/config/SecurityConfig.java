@@ -25,7 +25,7 @@ public class SecurityConfig {
 
         http
                 // ---------------------------------
-                // CSRF DISABLED (ANDROID / API)
+                // CSRF DISABLED (API / ANDROID)
                 // ---------------------------------
                 .csrf(csrf -> csrf.disable())
 
@@ -34,7 +34,7 @@ public class SecurityConfig {
                 // ---------------------------------
                 .authorizeHttpRequests(auth -> auth
 
-                        // ---------- PUBLIC ----------
+                        // ---------- STATIC / PUBLIC ----------
                         .requestMatchers(
                                 "/",
                                 "/error",
@@ -43,37 +43,25 @@ public class SecurityConfig {
                                 "/images/**"
                         ).permitAll()
 
-                        // ---------- LOGIN (JWT ISSUED) ----------
+                        // ---------- AUTH (JWT ISSUED HERE) ----------
                         .requestMatchers(
+                                "/api/auth/**",
                                 "/auth/student/login",
                                 "/api/teacher/login"
                         ).permitAll()
 
-                        // ---------- STUDENT (JWT + ROLE_STUDENT) ----------
-                        .requestMatchers(
-                                "/attendance/**",
-                                "/classes/**"
-                        ).hasRole("STUDENT")
-
-                        // ---------- TEACHER (JWT + ROLE_TEACHER) ----------
-                        .requestMatchers(
-                                "/api/teacher/**"
-                        ).hasRole("TEACHER")
+                        // ---------- API (JWT ONLY, NO FORM LOGIN) ----------
+                        .requestMatchers("/api/**").authenticated()
 
                         // ---------- ADMIN ----------
-                        .requestMatchers(
-                                "/",
-                                "/admin/login"
-                        ).permitAll()
-
+                        .requestMatchers("/admin/login").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
 
-                        // ---------- FALLBACK ----------
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
 
                 // ---------------------------------
-                // ADMIN FORM LOGIN (THYMELEAF)
+                // FORM LOGIN (ADMIN ONLY)
                 // ---------------------------------
                 .formLogin(form -> form
                         .loginPage("/")
@@ -84,12 +72,20 @@ public class SecurityConfig {
                 )
 
                 // ---------------------------------
-                // ADMIN LOGOUT
+                // API EXCEPTION HANDLING (CRITICAL FIX)
                 // ---------------------------------
-                .logout(logout -> logout
-                        .logoutUrl("/admin/logout")
-                        .logoutSuccessUrl("/admin/login?logout=true")
-                        .permitAll()
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            if (request.getRequestURI().startsWith("/api/")) {
+                                response.setStatus(401);
+                                response.setContentType("application/json");
+                                response.getWriter().write(
+                                        "{\"message\":\"Unauthorized\"}"
+                                );
+                            } else {
+                                response.sendRedirect("/");
+                            }
+                        })
                 )
 
                 // ---------------------------------
@@ -102,6 +98,7 @@ public class SecurityConfig {
 
         return http.build();
     }
+
 
     // ---------------------------------
     // PASSWORD ENCODER

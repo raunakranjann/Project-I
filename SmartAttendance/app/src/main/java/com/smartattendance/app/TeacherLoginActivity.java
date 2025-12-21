@@ -22,7 +22,6 @@ public class TeacherLoginActivity extends AppCompatActivity {
     private EditText usernameInput, passwordInput;
     private Button loginBtn;
     private ProgressBar loader;
-    private CheckBox rememberMeCheck;
 
     private SharedPreferences prefs;
 
@@ -37,18 +36,18 @@ public class TeacherLoginActivity extends AppCompatActivity {
         passwordInput = findViewById(R.id.passwordInput);
         loginBtn = findViewById(R.id.loginBtn);
         loader = findViewById(R.id.loader);
-        rememberMeCheck = findViewById(R.id.rememberMeCheck);
 
         prefs = getSharedPreferences("login_prefs", MODE_PRIVATE);
 
-        // ---------- AUTO LOGIN (JWT + ROLE) ----------
+        // ---------- AUTO LOGIN USING JWT ----------
         if (savedInstanceState == null) {
             String token = prefs.getString("auth_token", null);
             String role  = prefs.getString("role", null);
 
             if (token != null && "TEACHER".equals(role)) {
                 Intent i = new Intent(this, TeacherDashboardActivity.class);
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
+                        Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(i);
                 finish();
                 return;
@@ -111,15 +110,9 @@ public class TeacherLoginActivity extends AppCompatActivity {
 
                             SharedPreferences.Editor editor = prefs.edit();
 
-                            // 🔐 ALWAYS SAVE JWT
+                            // 🔐 SAVE JWT SESSION
                             editor.putString("auth_token", res.getToken());
                             editor.putString("role", "TEACHER");
-
-                            // 🔁 Remember-me only controls auto-login
-                            editor.putBoolean(
-                                    "remember_me",
-                                    rememberMeCheck.isChecked()
-                            );
 
                             editor.apply();
 

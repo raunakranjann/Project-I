@@ -31,6 +31,8 @@ public class TeacherDashboardActivity extends AppCompatActivity {
     private Button btnCreateClass;
     private ImageButton btnLogout;
 
+    private String authToken; // 🔐 JWT
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,13 +51,15 @@ public class TeacherDashboardActivity extends AppCompatActivity {
         SharedPreferences prefs =
                 getSharedPreferences("login_prefs", MODE_PRIVATE);
 
-        String token = prefs.getString("auth_token", null);
+        authToken = prefs.getString("auth_token", null);
         String role = prefs.getString("role", null);
 
-        if (token == null || !"TEACHER".equals(role)) {
-            Toast.makeText(this,
+        if (authToken == null || !"TEACHER".equals(role)) {
+            Toast.makeText(
+                    this,
                     "Session expired. Login again.",
-                    Toast.LENGTH_LONG).show();
+                    Toast.LENGTH_LONG
+            ).show();
             redirectToLogin();
             return;
         }
@@ -75,7 +79,7 @@ public class TeacherDashboardActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        loadTeacherClasses(); // refresh after create class
+        loadTeacherClasses(); // refresh after create / delete
     }
 
     private void loadTeacherClasses() {
@@ -84,9 +88,8 @@ public class TeacherDashboardActivity extends AppCompatActivity {
         recyclerView.setVisibility(RecyclerView.GONE);
         emptyText.setVisibility(TextView.GONE);
 
-        // ✅ JWT IDENTIFIES TEACHER (NO teacherId PARAM)
         RetrofitClient.getApiService(this)
-                .getTeacherClasses()
+                .getTeacherClasses("Bearer " + authToken)
                 .enqueue(new Callback<List<ClassSessionModel>>() {
 
                     @Override
@@ -111,13 +114,16 @@ public class TeacherDashboardActivity extends AppCompatActivity {
                         }
 
                         recyclerView.setAdapter(
-                                new TeacherClassAdapter(classes)
+                                new TeacherClassAdapter(classes, authToken)
                         );
                         recyclerView.setVisibility(RecyclerView.VISIBLE);
                     }
 
                     @Override
-                    public void onFailure(Call<List<ClassSessionModel>> call, Throwable t) {
+                    public void onFailure(
+                            Call<List<ClassSessionModel>> call,
+                            Throwable t) {
+
                         loader.setVisibility(ProgressBar.GONE);
                         emptyText.setText("Network error");
                         emptyText.setVisibility(TextView.VISIBLE);

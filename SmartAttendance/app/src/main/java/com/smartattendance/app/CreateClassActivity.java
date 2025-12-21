@@ -46,6 +46,8 @@ public class CreateClassActivity extends AppCompatActivity {
 
     private FusedLocationProviderClient locationClient;
 
+    private String authToken; // 🔐 JWT
+
     private final DateTimeFormatter formatter =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
@@ -54,14 +56,14 @@ public class CreateClassActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_class);
 
-        // ---------- SESSION CHECK (JWT + ROLE) ----------
+        // ---------- SESSION CHECK ----------
         SharedPreferences prefs =
                 getSharedPreferences("login_prefs", MODE_PRIVATE);
 
-        String token = prefs.getString("auth_token", null);
+        authToken = prefs.getString("auth_token", null);
         String role = prefs.getString("role", null);
 
-        if (token == null || !"TEACHER".equals(role)) {
+        if (authToken == null || !"TEACHER".equals(role)) {
             Toast.makeText(
                     this,
                     "Session expired. Please login again.",
@@ -197,9 +199,11 @@ public class CreateClassActivity extends AppCompatActivity {
     private void createClass() {
 
         if (startTime == null || endTime == null) {
-            Toast.makeText(this,
+            Toast.makeText(
+                    this,
                     "Select start and end time",
-                    Toast.LENGTH_SHORT).show();
+                    Toast.LENGTH_SHORT
+            ).show();
             return;
         }
 
@@ -207,9 +211,11 @@ public class CreateClassActivity extends AppCompatActivity {
         String radiusStr = radiusInput.getText().toString().trim();
 
         if (subject.isEmpty() || radiusStr.isEmpty()) {
-            Toast.makeText(this,
+            Toast.makeText(
+                    this,
                     "Subject and radius required",
-                    Toast.LENGTH_SHORT).show();
+                    Toast.LENGTH_SHORT
+            ).show();
             return;
         }
 
@@ -234,14 +240,15 @@ public class CreateClassActivity extends AppCompatActivity {
                 lat = Double.parseDouble(latitudeInput.getText().toString().trim());
                 lng = Double.parseDouble(longitudeInput.getText().toString().trim());
             } catch (Exception e) {
-                Toast.makeText(this,
+                Toast.makeText(
+                        this,
                         "Invalid latitude/longitude",
-                        Toast.LENGTH_SHORT).show();
+                        Toast.LENGTH_SHORT
+                ).show();
                 return;
             }
         }
 
-        // ✅ JWT-ONLY REQUEST
         CreateClassRequest req = new CreateClassRequest(
                 subject,
                 lat,
@@ -257,7 +264,7 @@ public class CreateClassActivity extends AppCompatActivity {
         createBtn.setEnabled(false);
 
         RetrofitClient.getApiService(this)
-                .createClass(req)
+                .createClass(req, "Bearer " + authToken)
                 .enqueue(new Callback<ApiResponse>() {
 
                     @Override

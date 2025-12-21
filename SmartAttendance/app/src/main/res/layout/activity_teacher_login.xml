@@ -44,7 +44,7 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:orientation="vertical"
             android:padding="24dp">
 
@@ -54,9 +54,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:background="@drawable/input_field_rounded"
-                android:paddingHorizontal="16dp"
                 android:hint="Username"
                 android:inputType="text"
+                android:paddingHorizontal="16dp"
                 android:textColor="#212121"
                 android:textColorHint="#757575" />
 
@@ -67,49 +67,38 @@
                 android:layout_height="56dp"
                 android:layout_marginTop="16dp"
                 android:background="@drawable/input_field_rounded"
-                android:paddingHorizontal="16dp"
                 android:hint="Password"
                 android:inputType="textPassword"
+                android:paddingHorizontal="16dp"
                 android:textColor="#212121"
                 android:textColorHint="#757575" />
 
-            <!-- Save Login Checkbox -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
+                android:layout_height="68dp"
+                android:layout_marginTop="12dp"
                 android:gravity="center_vertical"
-                android:layout_marginTop="12dp">
-
-                <CheckBox
-                    android:id="@+id/rememberMeCheck"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Save login"
-                    android:textSize="14sp"
-                    android:textColor="?attr/colorOnSurface"
-                    android:buttonTint="?attr/colorPrimary"/>
+                android:orientation="horizontal">
             </LinearLayout>
-
             <!-- Login Button -->
             <Button
                 android:id="@+id/loginBtn"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
                 android:layout_marginTop="20dp"
+                android:background="@drawable/button_blue_rounded"
                 android:text="LOGIN"
-                android:textStyle="bold"
                 android:textColor="#FFFFFF"
-                android:background="@drawable/button_blue_rounded" />
+                android:textStyle="bold" />
 
             <!-- Loader -->
             <ProgressBar
                 android:id="@+id/loader"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
                 android:layout_gravity="center"
-                android:visibility="gone"/>
+                android:layout_marginTop="20dp"
+                android:visibility="gone" />
 
         </LinearLayout>
 

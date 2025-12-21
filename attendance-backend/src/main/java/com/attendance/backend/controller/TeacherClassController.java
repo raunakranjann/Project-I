@@ -122,14 +122,14 @@ public class TeacherClassController {
 
         // ---------- CREATE SESSION ----------
         ClassSession session = new ClassSession();
-        session.setTeacher(teacher);        // ✅ REQUIRED
+        session.setTeacher(teacher);
         session.setSubjectName(req.getSubjectName());
         session.setLatitude(req.getLatitude());
         session.setLongitude(req.getLongitude());
         session.setRadius(req.getRadius());
         session.setStartTime(req.getStartTime());
         session.setEndTime(req.getEndTime());
-        session.setActive(true);            // ✅ soft delete default
+        session.setActive(true); // default active
 
         classRepo.save(session);
 
@@ -141,6 +141,47 @@ public class TeacherClassController {
                         "classId", session.getId(),
                         "message", "Class created successfully"
                 )
+        );
+    }
+
+    // ==================================================
+    // DELETE CLASS (SOFT DELETE) — TEACHER ONLY
+    // ==================================================
+    @DeleteMapping("/classes/{classId}")
+    public ResponseEntity<?> deleteClass(
+            @PathVariable Long classId,
+            Authentication authentication
+    ) {
+
+        if (authentication == null || authentication.getPrincipal() == null) {
+            return ResponseEntity.status(401)
+                    .body(Map.of("message", "Unauthorized"));
+        }
+
+        Long teacherId = (Long) authentication.getPrincipal();
+        log.info("Delete class request: classId={}, teacherId={}", classId, teacherId);
+
+        ClassSession session = classRepo.findById(classId).orElse(null);
+
+        if (session == null) {
+            return ResponseEntity.status(404)
+                    .body(Map.of("message", "Class not found"));
+        }
+
+        // SECURITY: teacher can delete only own class
+        if (!session.getTeacher().getId().equals(teacherId)) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("message", "Access denied"));
+        }
+
+        // SOFT DELETE
+        session.setActive(false);
+        classRepo.save(session);
+
+        log.info("Class soft-deleted successfully. classId={}", classId);
+
+        return ResponseEntity.ok(
+                Map.of("message", "Class deleted successfully")
         );
     }
 }

@@ -1,15 +1,19 @@
 package com.smartattendance.app.network;
 
 import java.util.List;
+import java.util.Map;
 
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
+import retrofit2.http.DELETE;
 import retrofit2.http.GET;
+import retrofit2.http.Header;
 import retrofit2.http.Multipart;
 import retrofit2.http.POST;
 import retrofit2.http.Part;
+import retrofit2.http.Path;
 
 public interface ApiService {
 
@@ -17,17 +21,14 @@ public interface ApiService {
     // STUDENT SIDE (JWT)
     // ===============================
 
-    // 🔐 Student login (JWT issued, device-bound)
     @POST("auth/student/login")
     Call<StudentLoginResponse> studentLogin(
             @Body StudentLoginRequest request
     );
 
-    // 📚 Get active classes
     @GET("classes/active")
     Call<List<ClassSessionModel>> getActiveClasses();
 
-    // 🧠 Mark attendance (JWT identifies student)
     @Multipart
     @POST("attendance/mark")
     Call<ApiResponse> markAttendance(
@@ -41,19 +42,25 @@ public interface ApiService {
     // TEACHER SIDE (JWT)
     // ===============================
 
-    // 🔐 Teacher login
     @POST("api/teacher/login")
     Call<TeacherLoginResponse> teacherLogin(
             @Body TeacherLoginRequest request
     );
 
-    // 🏫 Create class (JWT identifies teacher)
     @POST("api/teacher/create-class")
     Call<ApiResponse> createClass(
-            @Body CreateClassRequest request
+            @Body CreateClassRequest request,
+            @Header("Authorization") String token
     );
 
-    // 📋 Load teacher classes (JWT-based)
     @GET("api/teacher/classes")
-    Call<List<ClassSessionModel>> getTeacherClasses();
+    Call<List<ClassSessionModel>> getTeacherClasses(
+            @Header("Authorization") String token
+    );
+
+    @DELETE("api/teacher/classes/{classId}")
+    Call<Map<String, String>> deleteClass(
+            @Path("classId") long classId,
+            @Header("Authorization") String token
+    );
 }
