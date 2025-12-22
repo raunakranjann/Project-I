@@ -19,13 +19,16 @@ public class ClassController {
     }
 
     // =========================================
-    // STUDENT → FETCH ACTIVE CLASSES (JWT)
+    // STUDENT → FETCH FUTURE + LIVE CLASSES
     // =========================================
     @GetMapping("/active")
     public List<ClassSessionDto> getActiveClasses() {
 
-        // Returns empty list if no active classes
-        return classRepo.findActiveClassesForStudents(
+        // ✅ Returns:
+        // - future classes
+        // - currently live classes
+        // ❌ excludes expired classes
+        return classRepo.findStudentCurrentAndFutureClasses(
                 LocalDateTime.now()
         );
     }

@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -34,7 +35,7 @@ public class TeacherClassController {
     }
 
     // ==================================================
-    // TEACHER DASHBOARD → LOAD ACTIVE CLASSES (JWT)
+    // TEACHER DASHBOARD → FUTURE + LIVE CLASSES
     // ==================================================
     @GetMapping("/classes")
     public ResponseEntity<?> getTeacherClasses(Authentication authentication) {
@@ -45,10 +46,12 @@ public class TeacherClassController {
         }
 
         Long teacherId = (Long) authentication.getPrincipal();
-        log.info("Loading classes for teacherId={}", teacherId);
 
         List<ClassSession> sessions =
-                classRepo.findByTeacher_IdAndActiveTrue(teacherId);
+                classRepo.findTeacherCurrentAndFutureClasses(
+                        teacherId,
+                        LocalDateTime.now()
+                );
 
         return ResponseEntity.ok(
                 sessions.stream().map(c -> Map.of(
@@ -58,13 +61,14 @@ public class TeacherClassController {
                         "longitude", c.getLongitude(),
                         "radius", c.getRadius(),
                         "startTime", c.getStartTime().toString(),
-                        "endTime", c.getEndTime().toString()
+                        "endTime", c.getEndTime().toString(),
+                        "active", c.isActive()
                 )).toList()
         );
     }
 
     // ==================================================
-    // CREATE CLASS (JWT → BACKEND)
+    // CREATE CLASS
     // ==================================================
     @PostMapping("/create-class")
     public ResponseEntity<?> createClass(
@@ -73,52 +77,50 @@ public class TeacherClassController {
     ) {
 
         if (authentication == null || authentication.getPrincipal() == null) {
-            return ResponseEntity.status(401).body(
-                    Map.of("status", "FAILED", "message", "Unauthorized")
-            );
+            return ResponseEntity.status(401)
+                    .body(Map.of("status", "FAILED", "message", "Unauthorized"));
         }
 
         Long teacherId = (Long) authentication.getPrincipal();
-        log.info("Create class request by teacherId={}", teacherId);
 
-        // ---------- BASIC VALIDATION ----------
+        // ---------- VALIDATION ----------
         if (req.getSubjectName() == null || req.getSubjectName().isBlank()
                 || req.getStartTime() == null
                 || req.getEndTime() == null) {
 
-            return ResponseEntity.badRequest().body(
-                    Map.of("status", "FAILED",
-                            "message", "Missing required fields")
-            );
+            return ResponseEntity.badRequest()
+                    .body(Map.of("status", "FAILED", "message", "Missing required fields"));
         }
 
         if (req.getStartTime().isAfter(req.getEndTime())) {
-            return ResponseEntity.badRequest().body(
-                    Map.of("status", "FAILED",
-                            "message", "Start time must be before end time")
-            );
-        }
-
-        if (req.getLatitude() == 0 || req.getLongitude() == 0) {
-            return ResponseEntity.badRequest().body(
-                    Map.of("status", "FAILED",
-                            "message", "Invalid GPS coordinates")
-            );
+            return ResponseEntity.badRequest()
+                    .body(Map.of("status", "FAILED", "message", "Start time must be before end time"));
         }
 
         if (req.getRadius() <= 0) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("status", "FAILED", "message", "Radius must be greater than zero"));
+        }
+
+        // ---------- OVERLAP CHECK ----------
+        boolean hasConflict =
+                classRepo.existsOverlappingClassForTeacher(
+                        teacherId,
+                        req.getStartTime(),
+                        req.getEndTime()
+                );
+
+        if (hasConflict) {
             return ResponseEntity.badRequest().body(
-                    Map.of("status", "FAILED",
-                            "message", "Radius must be greater than zero")
+                    Map.of(
+                            "status", "FAILED",
+                            "message", "You already have a class scheduled in this time frame"
+                    )
             );
         }
 
-        // ---------- FETCH TEACHER ENTITY ----------
         Teacher teacher = teacherRepo.findById(teacherId)
-                .orElseThrow(() -> {
-                    log.error("Teacher not found for id={}", teacherId);
-                    return new RuntimeException("Teacher not found");
-                });
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
 
         // ---------- CREATE SESSION ----------
         ClassSession session = new ClassSession();
@@ -129,11 +131,12 @@ public class TeacherClassController {
         session.setRadius(req.getRadius());
         session.setStartTime(req.getStartTime());
         session.setEndTime(req.getEndTime());
-        session.setActive(true); // default active
+
+        // lifecycle flags
+        session.setActive(false);     // scheduler will activate
+        session.setDeleted(false);    // important
 
         classRepo.save(session);
-
-        log.info("Class created successfully. classId={}", session.getId());
 
         return ResponseEntity.ok(
                 Map.of(
@@ -145,7 +148,7 @@ public class TeacherClassController {
     }
 
     // ==================================================
-    // DELETE CLASS (SOFT DELETE) — TEACHER ONLY
+    // DELETE CLASS (MANUAL DELETE)
     // ==================================================
     @DeleteMapping("/classes/{classId}")
     public ResponseEntity<?> deleteClass(
@@ -159,7 +162,6 @@ public class TeacherClassController {
         }
 
         Long teacherId = (Long) authentication.getPrincipal();
-        log.info("Delete class request: classId={}, teacherId={}", classId, teacherId);
 
         ClassSession session = classRepo.findById(classId).orElse(null);
 
@@ -168,17 +170,16 @@ public class TeacherClassController {
                     .body(Map.of("message", "Class not found"));
         }
 
-        // SECURITY: teacher can delete only own class
         if (!session.getTeacher().getId().equals(teacherId)) {
             return ResponseEntity.status(403)
                     .body(Map.of("message", "Access denied"));
         }
 
-        // SOFT DELETE
+        // ✅ CORRECT MANUAL DELETE
+        session.setDeleted(true);
         session.setActive(false);
-        classRepo.save(session);
 
-        log.info("Class soft-deleted successfully. classId={}", classId);
+        classRepo.save(session);
 
         return ResponseEntity.ok(
                 Map.of("message", "Class deleted successfully")

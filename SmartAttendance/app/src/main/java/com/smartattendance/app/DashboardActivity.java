@@ -3,6 +3,8 @@ package com.smartattendance.app;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
@@ -27,6 +29,18 @@ public class DashboardActivity extends AppCompatActivity {
     private ProgressBar loader;
     private TextView emptyText;
     private ImageButton logoutBtn;
+
+    // 🔁 Auto refresh handler
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private static final long REFRESH_INTERVAL = 30_000; // 30 seconds
+
+    private final Runnable refreshRunnable = new Runnable() {
+        @Override
+        public void run() {
+            loadActiveClasses();
+            handler.postDelayed(this, REFRESH_INTERVAL);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,8 +76,16 @@ public class DashboardActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        loadActiveClasses();
+        handler.post(refreshRunnable); // ▶ start auto refresh
     }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        handler.removeCallbacks(refreshRunnable); // ⏸ stop auto refresh
+    }
+
+    // -----------------------------------------------------
 
     private void loadActiveClasses() {
         loader.setVisibility(View.VISIBLE);

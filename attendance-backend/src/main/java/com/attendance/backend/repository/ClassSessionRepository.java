@@ -13,7 +13,7 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, Long
 
     // =====================================================
     // STUDENT DASHBOARD
-    // → Only ACTIVE + CURRENT classes
+    // → Future + Live classes (NOT expired, NOT deleted)
     // =====================================================
     @Query("""
         SELECT new com.attendance.backend.dto.ClassSessionDto(
@@ -26,28 +26,90 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, Long
         )
         FROM ClassSession c
         JOIN c.teacher t
-        WHERE c.active = true
-          AND :now BETWEEN c.startTime AND c.endTime
+        WHERE c.deleted = false
+          AND c.endTime >= :now
+        ORDER BY c.startTime ASC
     """)
-    List<ClassSessionDto> findActiveClassesForStudents(
+    List<ClassSessionDto> findStudentCurrentAndFutureClasses(
             @Param("now") LocalDateTime now
     );
 
     // =====================================================
     // TEACHER DASHBOARD
-    // → Only ACTIVE classes created by teacher
+    // → Future + Live classes (NOT expired, NOT deleted)
     // =====================================================
-    List<ClassSession> findByTeacher_IdAndActiveTrue(Long teacherId);
+    @Query("""
+        SELECT c
+        FROM ClassSession c
+        WHERE c.teacher.id = :teacherId
+          AND c.deleted = false
+          AND c.endTime >= :now
+        ORDER BY c.startTime ASC
+    """)
+    List<ClassSession> findTeacherCurrentAndFutureClasses(
+            @Param("teacherId") Long teacherId,
+            @Param("now") LocalDateTime now
+    );
 
     // =====================================================
-    // ADMIN (OPTIONAL)
-    // → All classes (active + inactive)
+    // TIME OVERLAP CHECK (SAME TEACHER ONLY)
+    // → Must consider future + live classes, ignore deleted
     // =====================================================
-    List<ClassSession> findAll();
+    @Query("""
+        SELECT COUNT(c) > 0
+        FROM ClassSession c
+        WHERE c.teacher.id = :teacherId
+          AND c.deleted = false
+          AND c.startTime < :endTime
+          AND c.endTime > :startTime
+    """)
+    boolean existsOverlappingClassForTeacher(
+            @Param("teacherId") Long teacherId,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime
+    );
 
     // =====================================================
-    // ADMIN (OPTIONAL)
-    // → Only ACTIVE classes
+    // ADMIN DASHBOARD
     // =====================================================
-    List<ClassSession> findByActiveTrue();
+    List<ClassSession> findByActiveTrueAndDeletedFalse();
+
+    List<ClassSession> findByDeletedTrue();
+
+    @Query("""
+        SELECT COUNT(c)
+        FROM ClassSession c
+        WHERE c.active = true
+          AND c.deleted = false
+    """)
+    long countActiveClasses();
+
+    // =====================================================
+    // LIFECYCLE MANAGEMENT (SCHEDULER)
+    // =====================================================
+
+    // Auto-activate future classes (ignore deleted)
+    @Query("""
+        SELECT c
+        FROM ClassSession c
+        WHERE c.deleted = false
+          AND c.active = false
+          AND c.startTime <= :now
+          AND c.endTime > :now
+    """)
+    List<ClassSession> findClassesToActivate(
+            @Param("now") LocalDateTime now
+    );
+
+    // Auto-expire finished classes (ignore deleted)
+    @Query("""
+        SELECT c
+        FROM ClassSession c
+        WHERE c.deleted = false
+          AND c.active = true
+          AND c.endTime < :now
+    """)
+    List<ClassSession> findClassesToExpire(
+            @Param("now") LocalDateTime now
+    );
 }

@@ -24,6 +24,7 @@ import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping
@@ -79,6 +80,11 @@ public class AttendanceController {
         ClassSession session = classRepo.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
 
+        // 🔒 BLOCK DELETED CLASSES
+        if (session.isDeleted()) {
+            return ApiResponse.failed("Class session has been cancelled");
+        }
+
         if (!session.isActive()) {
             return ApiResponse.failed("Class session is no longer active");
         }
@@ -111,15 +117,27 @@ public class AttendanceController {
             return ApiResponse.failed("Registered face image not found");
         }
 
-        boolean match = faceService.verifyFace(
-                Files.readAllBytes(registeredImage.toPath()),
-                selfie.getBytes()
-        );
+        // ================= FACE VERIFICATION =================
+        Map<String, Object> faceResult =
+                faceService.verifyFace(
+                        Files.readAllBytes(registeredImage.toPath()),
+                        selfie.getBytes()
+                );
+
+        boolean match = Boolean.TRUE.equals(faceResult.get("match"));
 
         if (!match) {
-            return ApiResponse.failed("Face mismatch");
+            return ApiResponse.failed(
+                    String.valueOf(
+                            faceResult.getOrDefault(
+                                    "message",
+                                    "Face verification failed"
+                            )
+                    )
+            );
         }
 
+        // ================= SAVE ATTENDANCE =================
         AttendanceLog log = new AttendanceLog();
         log.setUserId(studentId);
         log.setClassId(classId);
@@ -133,21 +151,19 @@ public class AttendanceController {
     }
 
     // =====================================================
-    // ADMIN – VIEW ATTENDANCE REPORT (THYMELEAF)
+    // ADMIN – VIEW ATTENDANCE REPORT
     // =====================================================
     @GetMapping("/admin/attendance")
     public String viewAttendanceReport(
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date,
-
             @RequestParam(required = false) String subject,
             @RequestParam(required = false) String teacher,
             @RequestParam(required = false) String status,
             Model model
     ) {
 
-        // ✅ CRITICAL: EMPTY STRING → NULL
         subject = (subject == null || subject.isBlank()) ? null : subject;
         teacher = (teacher == null || teacher.isBlank()) ? null : teacher;
         status  = (status  == null || status.isBlank())  ? null : status;
@@ -158,8 +174,6 @@ public class AttendanceController {
                 );
 
         model.addAttribute("records", records);
-
-        // Preserve filters
         model.addAttribute("date", date);
         model.addAttribute("subject", subject);
         model.addAttribute("teacher", teacher);
@@ -176,14 +190,12 @@ public class AttendanceController {
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date,
-
             @RequestParam(required = false) String subject,
             @RequestParam(required = false) String teacher,
             @RequestParam(required = false) String status,
             HttpServletResponse response
     ) throws Exception {
 
-        // ✅ SAME NORMALIZATION AS VIEW
         subject = (subject == null || subject.isBlank()) ? null : subject;
         teacher = (teacher == null || teacher.isBlank()) ? null : teacher;
         status  = (status  == null || status.isBlank())  ? null : status;

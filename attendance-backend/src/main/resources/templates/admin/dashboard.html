@@ -16,8 +16,7 @@
             Welcome, <span class="text-blue-600">Admin</span>
         </h1>
 
-        <!-- CORRECT LOGOUT -->
-        <form th:action="@{/logout}" method="post" class="mt-4 md:mt-0">
+        <form th:action="@{/logout}" method="post">
             <button
                     class="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition font-semibold">
                 Logout
@@ -26,18 +25,24 @@
     </div>
 
     <!-- STATISTICS -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
 
         <div class="bg-blue-50 p-6 rounded-lg shadow text-center">
-            <h3 class="text-lg font-semibold text-gray-700">Total Users</h3>
+            <h3 class="text-lg font-semibold text-gray-700">Total Students</h3>
             <p class="text-4xl font-bold text-blue-600 mt-2"
-               th:text="${totalUsers}">0</p>
+               th:text="${totalStudents}">0</p>
+        </div>
+
+        <div class="bg-indigo-50 p-6 rounded-lg shadow text-center">
+            <h3 class="text-lg font-semibold text-gray-700">Total Teachers</h3>
+            <p class="text-4xl font-bold text-indigo-600 mt-2"
+               th:text="${totalTeachers}">0</p>
         </div>
 
         <div class="bg-green-50 p-6 rounded-lg shadow text-center">
-            <h3 class="text-lg font-semibold text-gray-700">Total Classes</h3>
+            <h3 class="text-lg font-semibold text-gray-700">Active Classes</h3>
             <p class="text-4xl font-bold text-green-600 mt-2"
-               th:text="${totalClasses}">0</p>
+               th:text="${activeClassesCount}">0</p>
         </div>
 
         <div class="bg-purple-50 p-6 rounded-lg shadow text-center">
@@ -66,7 +71,6 @@
             Manage Classes
         </a>
 
-        <!-- MATCHES AttendanceController -->
         <a th:href="@{/admin/attendance}"
            class="bg-green-600 text-white text-center py-4 rounded-lg shadow hover:bg-green-700 transition font-semibold">
             View Attendance
@@ -74,25 +78,28 @@
 
     </div>
 
-    <!-- CLASS TABLE -->
+    <!-- ACTIVE CLASSES ONLY -->
     <div>
         <h2 class="text-2xl font-semibold mb-4 text-gray-800">
-            Active / Recent Classes
+            Active Classes
         </h2>
 
-        <div th:if="${classes != null and !classes.isEmpty()}" class="overflow-x-auto">
-            <table class="min-w-full border border-gray-200 rounded-lg overflow-hidden">
+        <div th:if="${activeClasses != null and !activeClasses.isEmpty()}"
+             class="overflow-x-auto">
+            <table class="min-w-full border border-gray-200 rounded-lg">
                 <thead class="bg-gray-100">
                 <tr>
                     <th class="px-4 py-2 border">Subject</th>
-                    <th class="px-4 py-2 border">Start Time</th>
-                    <th class="px-4 py-2 border">End Time</th>
-                    <th class="px-4 py-2 border">Radius (m)</th>
+                    <th class="px-4 py-2 border">Teacher</th>
+                    <th class="px-4 py-2 border">Start</th>
+                    <th class="px-4 py-2 border">End</th>
+                    <th class="px-4 py-2 border">Radius</th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="c : ${classes}" class="hover:bg-gray-50">
+                <tr th:each="c : ${activeClasses}" class="hover:bg-gray-50">
                     <td class="px-4 py-2 border" th:text="${c.subjectName}"></td>
+                    <td class="px-4 py-2 border" th:text="${c.teacher.name}"></td>
                     <td class="px-4 py-2 border" th:text="${c.startTime}"></td>
                     <td class="px-4 py-2 border" th:text="${c.endTime}"></td>
                     <td class="px-4 py-2 border" th:text="${c.radius}"></td>
@@ -101,10 +108,9 @@
             </table>
         </div>
 
-        <!-- EMPTY STATE -->
-        <div th:if="${classes == null or classes.isEmpty()}"
+        <div th:if="${activeClasses == null or activeClasses.isEmpty()}"
              class="text-center text-gray-500 mt-6">
-            No classes found.
+            No active classes right now.
         </div>
     </div>
 

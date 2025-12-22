@@ -7,7 +7,6 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.*;
 
@@ -20,6 +19,8 @@ import com.google.android.gms.location.LocationServices;
 import com.smartattendance.app.network.ApiResponse;
 import com.smartattendance.app.network.CreateClassRequest;
 import com.smartattendance.app.network.RetrofitClient;
+
+import org.json.JSONObject;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -45,8 +46,7 @@ public class CreateClassActivity extends AppCompatActivity {
     private Double gpsLng = null;
 
     private FusedLocationProviderClient locationClient;
-
-    private String authToken; // 🔐 JWT
+    private String authToken;
 
     private final DateTimeFormatter formatter =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
@@ -199,11 +199,7 @@ public class CreateClassActivity extends AppCompatActivity {
     private void createClass() {
 
         if (startTime == null || endTime == null) {
-            Toast.makeText(
-                    this,
-                    "Select start and end time",
-                    Toast.LENGTH_SHORT
-            ).show();
+            Toast.makeText(this, "Select start and end time", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -211,11 +207,7 @@ public class CreateClassActivity extends AppCompatActivity {
         String radiusStr = radiusInput.getText().toString().trim();
 
         if (subject.isEmpty() || radiusStr.isEmpty()) {
-            Toast.makeText(
-                    this,
-                    "Subject and radius required",
-                    Toast.LENGTH_SHORT
-            ).show();
+            Toast.makeText(this, "Subject and radius required", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -240,11 +232,7 @@ public class CreateClassActivity extends AppCompatActivity {
                 lat = Double.parseDouble(latitudeInput.getText().toString().trim());
                 lng = Double.parseDouble(longitudeInput.getText().toString().trim());
             } catch (Exception e) {
-                Toast.makeText(
-                        this,
-                        "Invalid latitude/longitude",
-                        Toast.LENGTH_SHORT
-                ).show();
+                Toast.makeText(this, "Invalid latitude/longitude", Toast.LENGTH_SHORT).show();
                 return;
             }
         }
@@ -257,8 +245,6 @@ public class CreateClassActivity extends AppCompatActivity {
                 startTime.format(formatter),
                 endTime.format(formatter)
         );
-
-        Log.d(TAG, "Creating class -> " + req.getSubjectName());
 
         loader.setVisibility(View.VISIBLE);
         createBtn.setEnabled(false);
@@ -275,15 +261,39 @@ public class CreateClassActivity extends AppCompatActivity {
                         loader.setVisibility(View.GONE);
                         createBtn.setEnabled(true);
 
+                        // ✅ HANDLE NON-2xx RESPONSES PROPERLY
                         if (!response.isSuccessful()) {
-                            Toast.makeText(
-                                    CreateClassActivity.this,
-                                    "Server error: " + response.code(),
-                                    Toast.LENGTH_SHORT
-                            ).show();
+                            try {
+                                if (response.errorBody() != null) {
+                                    String errorJson = response.errorBody().string();
+                                    JSONObject json = new JSONObject(errorJson);
+
+                                    Toast.makeText(
+                                            CreateClassActivity.this,
+                                            json.optString(
+                                                    "message",
+                                                    "Failed to create class"
+                                            ),
+                                            Toast.LENGTH_LONG
+                                    ).show();
+                                } else {
+                                    Toast.makeText(
+                                            CreateClassActivity.this,
+                                            "Failed to create class",
+                                            Toast.LENGTH_SHORT
+                                    ).show();
+                                }
+                            } catch (Exception e) {
+                                Toast.makeText(
+                                        CreateClassActivity.this,
+                                        "Failed to create class",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+                            }
                             return;
                         }
 
+                        // ✅ SUCCESS
                         Toast.makeText(
                                 CreateClassActivity.this,
                                 "Class created successfully",
@@ -292,6 +302,7 @@ public class CreateClassActivity extends AppCompatActivity {
 
                         finish();
                     }
+
 
                     @Override
                     public void onFailure(Call<ApiResponse> call, Throwable t) {

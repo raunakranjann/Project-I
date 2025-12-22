@@ -5,6 +5,7 @@ import com.attendance.backend.entity.Teacher;
 import com.attendance.backend.repository.ClassSessionRepository;
 import com.attendance.backend.repository.TeacherRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -29,29 +30,49 @@ public class AdminClassController {
     @GetMapping("/new")
     public String showCreateClassPage(Model model) {
 
-        List<Teacher> teachers = teacherRepo.findAll();
-
-        model.addAttribute("teachers", teachers);
+        model.addAttribute("teachers", teacherRepo.findAll());
         model.addAttribute("classSession", new ClassSession());
 
         return "admin/create-class";
     }
 
     // ===============================
-    // LIST ALL CLASSES
+    // LIST ALL CLASSES (ACTIVE + FUTURE + PAST + DELETED)
     // ===============================
     @GetMapping
     public String listClasses(Model model) {
-        model.addAttribute(
-                "classes",
-                classRepo.findAll()
-                        .stream()
-                        .filter(ClassSession::isActive)
-                        .toList()
-        );
+
+        LocalDateTime now = LocalDateTime.now();
+
+        List<ClassSession> classes =
+                classRepo.findAll(
+                        Sort.by(
+                                Sort.Order.desc("deleted"),
+                                Sort.Order.desc("active"),
+                                Sort.Order.asc("startTime")
+                        )
+                );
+
+        // ✅ COMPUTE STATUS HERE (NOT IN THYMELEAF)
+        for (ClassSession c : classes) {
+
+            if (c.isDeleted()) {
+                c.setStatus("DELETED");
+
+            } else if (now.isBefore(c.getStartTime())) {
+                c.setStatus("FUTURE");
+
+            } else if (now.isAfter(c.getEndTime())) {
+                c.setStatus("EXPIRED");
+
+            } else {
+                c.setStatus("LIVE");
+            }
+        }
+
+        model.addAttribute("classes", classes);
         return "admin/classes";
     }
-
 
     // ===============================
     // HANDLE CLASS CREATION
@@ -68,8 +89,7 @@ public class AdminClassController {
             LocalDateTime startTime,
             @RequestParam
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            LocalDateTime endTime,
-            Model model
+            LocalDateTime endTime
     ) {
 
         Teacher teacher = teacherRepo.findById(teacherId)
@@ -84,22 +104,27 @@ public class AdminClassController {
         session.setStartTime(startTime);
         session.setEndTime(endTime);
 
-        classRepo.save(session);
+        // Scheduler controls lifecycle
+        session.setActive(false);
+        session.setDeleted(false);
 
-        model.addAttribute("message", "Class session created successfully");
-        model.addAttribute("classId", session.getId());
+        classRepo.save(session);
 
         return "redirect:/admin/classes";
     }
 
     // ===============================
-    // SHOW EDIT FORM
+    // SHOW EDIT FORM (FUTURE + LIVE ONLY)
     // ===============================
     @GetMapping("/edit/{id}")
     public String showEditForm(@PathVariable Long id, Model model) {
 
         ClassSession session = classRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
+
+        if (session.isDeleted()) {
+            return "redirect:/admin/classes";
+        }
 
         model.addAttribute("classSession", session);
         model.addAttribute("teachers", teacherRepo.findAll());
@@ -130,6 +155,10 @@ public class AdminClassController {
         ClassSession session = classRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
 
+        if (session.isDeleted()) {
+            return "redirect:/admin/classes";
+        }
+
         Teacher teacher = teacherRepo.findById(teacherId)
                 .orElseThrow(() -> new RuntimeException("Teacher not found"));
 
@@ -147,7 +176,7 @@ public class AdminClassController {
     }
 
     // ===============================
-    // DELETE CLASS
+    // DELETE CLASS (ADMIN – ANY TIME)
     // ===============================
     @GetMapping("/delete/{id}")
     public String deleteClass(@PathVariable Long id) {
@@ -155,11 +184,11 @@ public class AdminClassController {
         ClassSession session = classRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
 
-        session.setActive(false);   // ✅ soft delete
+        session.setDeleted(true);
+        session.setActive(false);
+
         classRepo.save(session);
 
         return "redirect:/admin/classes";
     }
-
-
 }

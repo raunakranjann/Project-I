@@ -301,18 +301,40 @@ public class AttendanceActivity extends AppCompatActivity {
                             Toast.makeText(
                                     AttendanceActivity.this,
                                     "Session expired. Login again.",
-                                    Toast.LENGTH_LONG).show();
+                                    Toast.LENGTH_LONG
+                            ).show();
                             finish();
                             return;
                         }
 
-                        if (response.body() != null) {
+                        if (!response.isSuccessful()) {
                             Toast.makeText(
                                     AttendanceActivity.this,
-                                    response.body().getMessage(),
-                                    Toast.LENGTH_LONG).show();
-                            finish();
+                                    "Attendance failed. Try again.",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                            return;
                         }
+
+                        ApiResponse body = response.body();
+
+                        if (body == null) {
+                            Toast.makeText(
+                                    AttendanceActivity.this,
+                                    "Server error. Please try again.",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                            return;
+                        }
+
+                        // ✅ BACKEND MESSAGE (AI server down / face mismatch / success)
+                        Toast.makeText(
+                                AttendanceActivity.this,
+                                body.getMessage(),
+                                Toast.LENGTH_LONG
+                        ).show();
+
+                        finish();
                     }
 
                     @Override
@@ -320,12 +342,15 @@ public class AttendanceActivity extends AppCompatActivity {
                         loaderOverlay.setVisibility(View.GONE);
                         markAttendanceBtn.setEnabled(true);
 
+                        // 🔴 NETWORK / AI SERVER DOWN
                         Toast.makeText(
                                 AttendanceActivity.this,
-                                "Attendance failed",
-                                Toast.LENGTH_SHORT).show();
+                                "AI server is down. Please try again later.",
+                                Toast.LENGTH_LONG
+                        ).show();
                     }
                 });
+
     }
 
     private void requestPermissions() {
