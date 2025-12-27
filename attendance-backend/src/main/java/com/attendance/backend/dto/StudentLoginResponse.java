@@ -11,7 +11,7 @@ public class StudentLoginResponse {
 
     private boolean success;
     private Long studentId;
-    private String name;
+    private String studentName; // 🔴 FIXED (was name)
     private String token;
     private String message;
 
@@ -21,13 +21,13 @@ public class StudentLoginResponse {
 
     public static StudentLoginResponse success(
             Long studentId,
-            String name,
+            String studentName,
             String token
     ) {
         return new StudentLoginResponse(
                 true,
                 studentId,
-                name,
+                studentName,
                 token,
                 "Login successful"
         );

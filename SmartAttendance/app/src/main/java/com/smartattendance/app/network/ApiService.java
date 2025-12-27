@@ -1,15 +1,14 @@
 package com.smartattendance.app.network;
 
 import java.util.List;
-import java.util.Map;
 
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
-import retrofit2.http.DELETE;
+import retrofit2.http.FormUrlEncoded;
+import retrofit2.http.Field;
 import retrofit2.http.GET;
-import retrofit2.http.Header;
 import retrofit2.http.Multipart;
 import retrofit2.http.POST;
 import retrofit2.http.Part;
@@ -47,20 +46,22 @@ public interface ApiService {
             @Body TeacherLoginRequest request
     );
 
-    @POST("api/teacher/create-class")
-    Call<ApiResponse> createClass(
-            @Body CreateClassRequest request,
-            @Header("Authorization") String token
+    // 🔒 TODAY ONLY (backend enforced)
+    @GET("api/teacher/classes/today")
+    Call<List<ClassSessionModel>> getTeacherTodayClasses();
+
+    // 🔒 Students for LIVE class only
+    @GET("api/teacher/classes/{classId}/students")
+    Call<ApiResponse<List<StudentModel>>> getStudentsForClass(
+            @Path("classId") Long classId
     );
 
-    @GET("api/teacher/classes")
-    Call<List<ClassSessionModel>> getTeacherClasses(
-            @Header("Authorization") String token
-    );
-
-    @DELETE("api/teacher/classes/{classId}")
-    Call<Map<String, String>> deleteClass(
-            @Path("classId") long classId,
-            @Header("Authorization") String token
+    // 🔒 Manual attendance (one-time)
+    @FormUrlEncoded
+    @POST("api/teacher/attendance/mark")
+    Call<ApiResponse<String>> markAttendanceByTeacher(
+            @Field("classId") Long classId,
+            @Field("studentId") Long studentId,
+            @Field("status") String status   // PRESENT / ABSENT
     );
 }

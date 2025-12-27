@@ -45,12 +45,10 @@ public class StudentClassAdapter
         holder.subjectText.setText(c.getSubjectName());
         holder.teacherText.setText("Teacher: " + c.getTeacherName());
 
+        // ---------- CLICK → ATTENDANCE ----------
         holder.itemView.setOnClickListener(v -> {
             Intent i = new Intent(context, AttendanceActivity.class);
-            i.putExtra("classId", c.getId());
-            i.putExtra("latitude", c.getLatitude());
-            i.putExtra("longitude", c.getLongitude());
-            i.putExtra("radius", c.getRadius());
+            i.putExtra("classId", c.getId()); // ✅ ONLY REQUIRED FIELD
             context.startActivity(i);
         });
     }

@@ -10,18 +10,14 @@ public class StudentLoginResponse {
     @SerializedName("studentId")
     private Long studentId;
 
-    @SerializedName("studentName")
+    @SerializedName("name")
     private String studentName;
 
     @SerializedName("token")
-    private String token; // ✅ JWT TOKEN
+    private String token;
 
     @SerializedName("message")
     private String message;
-
-    // Required empty constructor for Gson
-    public StudentLoginResponse() {
-    }
 
     public boolean isSuccess() {
         return success;
@@ -41,16 +37,5 @@ public class StudentLoginResponse {
 
     public String getMessage() {
         return message;
-    }
-
-    @Override
-    public String toString() {
-        return "StudentLoginResponse{" +
-                "success=" + success +
-                ", studentId=" + studentId +
-                ", studentName='" + studentName + '\'' +
-                ", token='" + token + '\'' +
-                ", message='" + message + '\'' +
-                '}';
     }
 }

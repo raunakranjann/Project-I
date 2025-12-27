@@ -85,11 +85,11 @@ public class AttendanceActivity extends AppCompatActivity {
             return;
         }
 
-        // 🔐 JWT SESSION CHECK
+        // 🔐 JWT SESSION CHECK (FINAL)
         SharedPreferences prefs =
-                getSharedPreferences("login_prefs", MODE_PRIVATE);
+                getSharedPreferences("auth", MODE_PRIVATE);
 
-        String token = prefs.getString("auth_token", null);
+        String token = prefs.getString("jwt", null);
         String role  = prefs.getString("role", null);
 
         if (token == null || !"STUDENT".equals(role)) {
@@ -307,30 +307,13 @@ public class AttendanceActivity extends AppCompatActivity {
                             return;
                         }
 
-                        if (!response.isSuccessful()) {
-                            Toast.makeText(
-                                    AttendanceActivity.this,
-                                    "Attendance failed. Try again.",
-                                    Toast.LENGTH_LONG
-                            ).show();
-                            return;
-                        }
-
                         ApiResponse body = response.body();
 
-                        if (body == null) {
-                            Toast.makeText(
-                                    AttendanceActivity.this,
-                                    "Server error. Please try again.",
-                                    Toast.LENGTH_LONG
-                            ).show();
-                            return;
-                        }
-
-                        // ✅ BACKEND MESSAGE (AI server down / face mismatch / success)
                         Toast.makeText(
                                 AttendanceActivity.this,
-                                body.getMessage(),
+                                body != null
+                                        ? body.getMessage()
+                                        : "Attendance failed",
                                 Toast.LENGTH_LONG
                         ).show();
 
@@ -342,7 +325,6 @@ public class AttendanceActivity extends AppCompatActivity {
                         loaderOverlay.setVisibility(View.GONE);
                         markAttendanceBtn.setEnabled(true);
 
-                        // 🔴 NETWORK / AI SERVER DOWN
                         Toast.makeText(
                                 AttendanceActivity.this,
                                 "AI server is down. Please try again later.",
@@ -350,7 +332,6 @@ public class AttendanceActivity extends AppCompatActivity {
                         ).show();
                     }
                 });
-
     }
 
     private void requestPermissions() {

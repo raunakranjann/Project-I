@@ -1,11 +1,22 @@
 package com.smartattendance.app.network;
 
+import com.google.gson.annotations.SerializedName;
+
 public class TeacherLoginResponse {
 
+    @SerializedName("success")
     private boolean success;
+
+    @SerializedName("teacherId")
     private Long teacherId;
+
+    @SerializedName("teacherName")
     private String teacherName;
-    private String token;   // ✅ JWT
+
+    @SerializedName("token")
+    private String token;
+
+    @SerializedName("message")
     private String message;
 
     public boolean isSuccess() {

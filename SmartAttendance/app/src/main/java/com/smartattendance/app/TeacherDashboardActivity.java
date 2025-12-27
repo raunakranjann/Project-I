@@ -3,7 +3,6 @@ package com.smartattendance.app;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -16,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.smartattendance.app.network.ClassSessionModel;
 import com.smartattendance.app.network.RetrofitClient;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import retrofit2.Call;
@@ -27,11 +27,7 @@ public class TeacherDashboardActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private ProgressBar loader;
     private TextView emptyText;
-
-    private Button btnCreateClass;
     private ImageButton btnLogout;
-
-    private String authToken; // 🔐 JWT
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,55 +37,41 @@ public class TeacherDashboardActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerView);
         loader = findViewById(R.id.loader);
         emptyText = findViewById(R.id.emptyText);
-        btnCreateClass = findViewById(R.id.btnCreateClass);
         btnLogout = findViewById(R.id.btnLogout);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setHasFixedSize(true);
 
         // ---------- JWT SESSION CHECK ----------
-        SharedPreferences prefs =
-                getSharedPreferences("login_prefs", MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences("auth", MODE_PRIVATE);
+        String token = prefs.getString("jwt", null);
+        String role  = prefs.getString("role", null);
 
-        authToken = prefs.getString("auth_token", null);
-        String role = prefs.getString("role", null);
-
-        if (authToken == null || !"TEACHER".equals(role)) {
-            Toast.makeText(
-                    this,
+        if (token == null || !"TEACHER".equals(role)) {
+            Toast.makeText(this,
                     "Session expired. Login again.",
-                    Toast.LENGTH_LONG
-            ).show();
+                    Toast.LENGTH_LONG).show();
             redirectToLogin();
             return;
         }
 
-        // ---------- CREATE CLASS ----------
-        btnCreateClass.setOnClickListener(v ->
-                startActivity(new Intent(
-                        TeacherDashboardActivity.this,
-                        CreateClassActivity.class
-                ))
-        );
-
-        // ---------- LOGOUT ----------
         btnLogout.setOnClickListener(v -> logout());
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        loadTeacherClasses(); // refresh after create / delete
+        loadTodayClasses();
     }
 
-    private void loadTeacherClasses() {
+    private void loadTodayClasses() {
 
         loader.setVisibility(ProgressBar.VISIBLE);
         recyclerView.setVisibility(RecyclerView.GONE);
         emptyText.setVisibility(TextView.GONE);
 
         RetrofitClient.getApiService(this)
-                .getTeacherClasses("Bearer " + authToken)
+                .getTeacherTodayClasses()
                 .enqueue(new Callback<List<ClassSessionModel>>() {
 
                     @Override
@@ -108,14 +90,56 @@ public class TeacherDashboardActivity extends AppCompatActivity {
                         List<ClassSessionModel> classes = response.body();
 
                         if (classes.isEmpty()) {
-                            emptyText.setText("No classes created yet");
+                            emptyText.setText("No classes scheduled today");
                             emptyText.setVisibility(TextView.VISIBLE);
                             return;
                         }
 
-                        recyclerView.setAdapter(
-                                new TeacherClassAdapter(classes, authToken)
-                        );
+                        // ✅ SAFE CLICK HANDLING
+                        TeacherClassAdapter adapter =
+                                new TeacherClassAdapter(classes, session -> {
+
+                                    LocalDateTime now = LocalDateTime.now();
+                                    LocalDateTime start =
+                                            LocalDateTime.parse(session.getStartTime());
+                                    LocalDateTime end =
+                                            LocalDateTime.parse(session.getEndTime());
+
+                                    if (now.isBefore(start)) {
+                                        Toast.makeText(
+                                                TeacherDashboardActivity.this,
+                                                "Class has not started yet",
+                                                Toast.LENGTH_SHORT
+                                        ).show();
+
+                                        return;
+                                    }
+
+                                    if (now.isAfter(end)) {
+                                        Toast.makeText(
+                                                TeacherDashboardActivity.this,
+                                                "Class already ended",
+                                                Toast.LENGTH_SHORT
+                                        ).show();
+
+                                        return;
+                                    }
+
+                                    // ✅ LIVE CLASS → OPEN STUDENTS
+                                    Intent intent = new Intent(
+                                            TeacherDashboardActivity.this,
+                                            TeacherStudentsActivity.class
+                                    );
+
+                                    intent.putExtra("classId", session.getId());
+                                    intent.putExtra("subject", session.getSubjectName());
+                                    intent.putExtra("startTime", session.getStartTime());
+                                    intent.putExtra("endTime", session.getEndTime());
+
+                                    startActivity(intent);
+                                });
+
+                        recyclerView.setAdapter(adapter);
                         recyclerView.setVisibility(RecyclerView.VISIBLE);
                     }
 
@@ -132,8 +156,7 @@ public class TeacherDashboardActivity extends AppCompatActivity {
     }
 
     private void logout() {
-        SharedPreferences prefs =
-                getSharedPreferences("login_prefs", MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences("auth", MODE_PRIVATE);
         prefs.edit().clear().apply();
         redirectToLogin();
     }

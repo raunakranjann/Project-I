@@ -5,23 +5,36 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class ApiResponse {
+public class ApiResponse<T> {
 
     private String status;
     private String message;
+    private T data;
 
-    private ApiResponse(String status, String message) {
+    private ApiResponse(String status, String message, T data) {
         this.status = status;
         this.message = message;
+        this.data = data;
     }
 
-    // ✅ SUCCESS helper
-    public static ApiResponse success(String message) {
-        return new ApiResponse("SUCCESS", message);
+    // =============================
+    // SUCCESS WITH DATA
+    // =============================
+    public static <T> ApiResponse<T> success(T data) {
+        return new ApiResponse<>("SUCCESS", null, data);
     }
 
-    // ✅ FAILURE helper (THIS WAS MISSING)
-    public static ApiResponse failed(String message) {
-        return new ApiResponse("FAIL", message);
+    // =============================
+    // SUCCESS WITH MESSAGE ONLY
+    // =============================
+    public static <T> ApiResponse<T> successMessage(String message) {
+        return new ApiResponse<>("SUCCESS", message, null);
+    }
+
+    // =============================
+    // FAILURE
+    // =============================
+    public static <T> ApiResponse<T> failed(String message) {
+        return new ApiResponse<>("FAIL", message, null);
     }
 }

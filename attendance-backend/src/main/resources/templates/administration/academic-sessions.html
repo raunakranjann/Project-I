@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Academic Session Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Prevent cache -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+    <meta http-equiv="Pragma" content="no-cache"/>
+    <meta http-equiv="Expires" content="0"/>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+
+<div class="max-w-5xl mx-auto mt-10 bg-white p-8 rounded-xl shadow">
+
+    <!-- HEADER -->
+    <div class="flex justify-between items-center border-b pb-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">
+                Academic Session Management
+            </h1>
+            <p class="text-sm text-gray-500">
+                Administration → Master Data
+            </p>
+        </div>
+
+        <a th:href="@{/administration/dashboard}"
+           class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">
+            Back
+        </a>
+    </div>
+
+    <!-- ERROR -->
+    <div th:if="${error}"
+         class="mb-4 bg-red-100 text-red-700 p-3 rounded text-center font-semibold"
+         th:text="${error}">
+    </div>
+
+    <!-- ADD SESSION FORM -->
+    <form th:action="@{/administration/academic-sessions}"
+          method="post"
+          class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+
+        <!-- CSRF -->
+        <input type="hidden"
+               th:name="${_csrf.parameterName}"
+               th:value="${_csrf.token}"/>
+
+        <input type="number"
+               name="startYear"
+               placeholder="From Year (e.g. 2021)"
+               required
+               class="input"/>
+
+        <input type="number"
+               name="endYear"
+               placeholder="To Year (e.g. 2025)"
+               required
+               class="input"/>
+
+        <button class="md:col-span-3 bg-blue-600 text-white py-2 rounded font-semibold
+                       hover:bg-blue-700 transition">
+            Add Academic Session
+        </button>
+    </form>
+
+    <!-- SESSION LIST -->
+    <table class="w-full border border-gray-300 rounded overflow-hidden">
+        <thead class="bg-gray-100">
+        <tr>
+            <th class="p-3 text-left">Session</th>
+            <th class="p-3 text-left">From</th>
+            <th class="p-3 text-left">To</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr th:each="s : ${sessions}"
+            class="border-t hover:bg-gray-50">
+            <td class="p-3 font-semibold text-blue-600"
+                th:text="${s.displayName}">
+            </td>
+            <td class="p-3"
+                th:text="${s.startYear}">
+            </td>
+            <td class="p-3"
+                th:text="${s.endYear}">
+            </td>
+        </tr>
+
+        <tr th:if="${#lists.isEmpty(sessions)}">
+            <td colspan="3"
+                class="p-4 text-center text-gray-500">
+                No academic sessions available
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+</div>
+
+<style>
+    .input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background-color: #ffffff;
+    }
+</style>
+
+</body>
+</html>

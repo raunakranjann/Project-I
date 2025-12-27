@@ -1,7 +1,7 @@
 package com.attendance.backend.security;
 
-import com.attendance.backend.entity.Admin;
-import com.attendance.backend.repository.AdminRepository;
+import com.attendance.backend.model.user.Admin;
+import com.attendance.backend.model.user.repository.AdminRepository;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -11,21 +11,23 @@ import org.springframework.stereotype.Service;
 @Service
 public class AdminDetailsService implements UserDetailsService {
 
-    private final AdminRepository adminRepository;
+    private final AdminRepository adminRepo;
 
-    public AdminDetailsService(AdminRepository adminRepository) {
-        this.adminRepository = adminRepository;
+    public AdminDetailsService(AdminRepository adminRepo) {
+        this.adminRepo = adminRepo;
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) {
-        Admin admin = adminRepository.findByUsername(username)
+    public UserDetails loadUserByUsername(String username)
+            throws UsernameNotFoundException {
+
+        Admin admin = adminRepo.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Admin not found"));
 
         return User.builder()
                 .username(admin.getUsername())
                 .password(admin.getPassword())
-                .roles("ADMIN")
+                .roles(admin.getRole().name()) // 🔥 ADMIN or ADMINISTRATION
                 .disabled(!admin.isEnabled())
                 .build();
     }

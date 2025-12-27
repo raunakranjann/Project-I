@@ -17,11 +17,9 @@
         </h1>
 
         <form th:action="@{/logout}" method="post">
-            <button
-                    class="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition font-semibold">
-                Logout
-            </button>
+            <button>Logout</button>
         </form>
+
     </div>
 
     <!-- STATISTICS -->
@@ -39,24 +37,25 @@
                th:text="${totalTeachers}">0</p>
         </div>
 
-        <div class="bg-green-50 p-6 rounded-lg shadow text-center">
-            <h3 class="text-lg font-semibold text-gray-700">Active Classes</h3>
-            <p class="text-4xl font-bold text-green-600 mt-2"
-               th:text="${activeClassesCount}">0</p>
-        </div>
-
         <div class="bg-purple-50 p-6 rounded-lg shadow text-center">
             <h3 class="text-lg font-semibold text-gray-700">Today Attendance</h3>
             <p class="text-4xl font-bold text-purple-600 mt-2"
                th:text="${todayAttendance}">0</p>
         </div>
 
+        <div class="bg-gray-100 p-6 rounded-lg shadow text-center">
+            <h3 class="text-lg font-semibold text-gray-700">System Status</h3>
+            <p class="text-lg font-semibold text-green-600 mt-2">
+                Running
+            </p>
+        </div>
+
     </div>
 
-    <!-- QUICK ACTIONS -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+    <!-- ADMIN ACTIONS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-12">
 
-        <a th:href="@{/admin/register}"
+        <a th:href="@{/admin/students/register}"
            class="bg-blue-600 text-white text-center py-4 rounded-lg shadow hover:bg-blue-700 transition font-semibold">
             Register Student
         </a>
@@ -66,52 +65,25 @@
             Create Teacher
         </a>
 
-        <a th:href="@{/admin/classes}"
-           class="bg-gray-700 text-white text-center py-4 rounded-lg shadow hover:bg-gray-800 transition font-semibold">
-            Manage Classes
+        <a th:href="@{/admin/users}"
+           class="bg-purple-600 text-white text-center py-4 rounded-lg shadow hover:bg-purple-700 transition font-semibold">
+            Create Administration User
         </a>
 
         <a th:href="@{/admin/attendance}"
            class="bg-green-600 text-white text-center py-4 rounded-lg shadow hover:bg-green-700 transition font-semibold">
-            View Attendance
+            View Attendance Reports
         </a>
 
     </div>
 
-    <!-- ACTIVE CLASSES ONLY -->
-    <div>
-        <h2 class="text-2xl font-semibold mb-4 text-gray-800">
-            Active Classes
-        </h2>
-
-        <div th:if="${activeClasses != null and !activeClasses.isEmpty()}"
-             class="overflow-x-auto">
-            <table class="min-w-full border border-gray-200 rounded-lg">
-                <thead class="bg-gray-100">
-                <tr>
-                    <th class="px-4 py-2 border">Subject</th>
-                    <th class="px-4 py-2 border">Teacher</th>
-                    <th class="px-4 py-2 border">Start</th>
-                    <th class="px-4 py-2 border">End</th>
-                    <th class="px-4 py-2 border">Radius</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="c : ${activeClasses}" class="hover:bg-gray-50">
-                    <td class="px-4 py-2 border" th:text="${c.subjectName}"></td>
-                    <td class="px-4 py-2 border" th:text="${c.teacher.name}"></td>
-                    <td class="px-4 py-2 border" th:text="${c.startTime}"></td>
-                    <td class="px-4 py-2 border" th:text="${c.endTime}"></td>
-                    <td class="px-4 py-2 border" th:text="${c.radius}"></td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div th:if="${activeClasses == null or activeClasses.isEmpty()}"
-             class="text-center text-gray-500 mt-6">
-            No active classes right now.
-        </div>
+    <!-- INFO BOX -->
+    <div class="bg-yellow-50 border border-yellow-300 rounded-lg p-6 text-yellow-800">
+        <h3 class="font-semibold text-lg mb-2">Admin Note</h3>
+        <p>
+            Academic activities such as routine creation, period management, and
+            teacher assignment are handled by the <b>Administration</b> role.
+        </p>
     </div>
 
 </div>

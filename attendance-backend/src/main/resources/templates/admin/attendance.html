@@ -17,20 +17,25 @@
         </h2>
 
         <div class="flex gap-3 mt-4 md:mt-0">
-            <!-- EXPORT (SAFE) -->
+            <!-- EXCEL EXPORT (SAME FILTERS) -->
             <a th:href="@{/admin/attendance/export(
                     date=${date},
                     subject=${subject},
                     teacher=${teacher},
-                    status=${status}
+                    student=${student},
+                    status=${status},
+                    courseId=${courseId},
+                    branchId=${branchId},
+                    academicSessionId=${academicSessionId},
+                    semesterId=${semesterId}
                 )}"
-               class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition font-semibold">
+               class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-semibold">
                 Download Excel
             </a>
 
             <a th:href="@{/admin/dashboard}"
-               class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition">
-                Back to Dashboard
+               class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800">
+                Back
             </a>
         </div>
     </div>
@@ -38,94 +43,118 @@
     <!-- FILTERS -->
     <form method="get"
           th:action="@{/admin/attendance}"
-          class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
 
         <!-- DATE -->
-        <input type="date"
-               name="date"
-               th:value="${date}"
-               class="border rounded-lg px-3 py-2">
+        <input type="date" name="date" th:value="${date}"
+               class="border rounded-lg px-3 py-2"/>
+
+        <!-- COURSE -->
+        <select name="courseId" id="courseSelect"
+                class="border rounded-lg px-3 py-2">
+            <option value="">All Courses</option>
+            <option th:each="c : ${courses}"
+                    th:value="${c.id}"
+                    th:text="${c.name}"
+                    th:selected="${courseId == c.id}">
+            </option>
+        </select>
+
+        <!-- BRANCH (AJAX) -->
+        <select name="branchId" id="branchSelect"
+                class="border rounded-lg px-3 py-2">
+            <option value="">All Branches</option>
+            <option th:each="b : ${branches}"
+                    th:value="${b.id}"
+                    th:text="${b.code}"
+                    th:selected="${branchId == b.id}">
+            </option>
+        </select>
+
+        <!-- ACADEMIC SESSION -->
+        <select name="academicSessionId"
+                class="border rounded-lg px-3 py-2">
+            <option value="">All Sessions</option>
+            <option th:each="s : ${sessions}"
+                    th:value="${s.id}"
+                    th:text="${s.displayName}"
+                    th:selected="${academicSessionId == s.id}">
+            </option>
+        </select>
+
+        <!-- SEMESTER -->
+        <select name="semesterId"
+                class="border rounded-lg px-3 py-2">
+            <option value="">All Semesters</option>
+            <option th:each="sem : ${semesters}"
+                    th:value="${sem.id}"
+                    th:text="${sem.name}"
+                    th:selected="${semesterId == sem.id}">
+            </option>
+        </select>
 
         <!-- SUBJECT -->
-        <input type="text"
-               name="subject"
-               placeholder="Subject"
+        <input type="text" name="subject" placeholder="Subject"
                th:value="${subject}"
-               class="border rounded-lg px-3 py-2">
+               class="border rounded-lg px-3 py-2"/>
 
         <!-- TEACHER -->
-        <input type="text"
-               name="teacher"
-               placeholder="Teacher"
+        <input type="text" name="teacher" placeholder="Teacher"
                th:value="${teacher}"
-               class="border rounded-lg px-3 py-2">
+               class="border rounded-lg px-3 py-2"/>
+
+        <!-- STUDENT -->
+        <input type="text" name="student" placeholder="Student"
+               th:value="${student}"
+               class="border rounded-lg px-3 py-2"/>
 
         <!-- STATUS -->
         <select name="status"
                 class="border rounded-lg px-3 py-2">
             <option value="">All Status</option>
-            <option value="PRESENT"
-                    th:selected="${status == 'PRESENT'}">
-                Present
-            </option>
-            <option value="ABSENT"
-                    th:selected="${status == 'ABSENT'}">
-                Absent
-            </option>
+            <option value="PRESENT" th:selected="${status == 'PRESENT'}">Present</option>
+            <option value="ABSENT" th:selected="${status == 'ABSENT'}">Absent</option>
         </select>
 
+        <!-- APPLY -->
         <button type="submit"
-                class="bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                class="bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
             Apply Filters
         </button>
     </form>
 
     <!-- TABLE -->
     <div class="overflow-x-auto">
-        <table class="min-w-full border border-gray-200 rounded-lg overflow-hidden">
+        <table class="min-w-full border border-gray-200 rounded-lg">
 
             <thead class="bg-gray-100">
             <tr>
-                <th class="px-4 py-2 border">User ID</th>
-                <th class="px-4 py-2 border">Roll No</th>
-                <th class="px-4 py-2 border">Student</th>
-
-                <th class="px-4 py-2 border">Class ID</th>
-                <th class="px-4 py-2 border">Subject</th>
-                <th class="px-4 py-2 border">Teacher</th>
-
-                <th class="px-4 py-2 border">Date</th>
-                <th class="px-4 py-2 border">Time</th>
-                <th class="px-4 py-2 border">Status</th>
+                <th class="px-3 py-2 border">Student</th>
+                <th class="px-3 py-2 border">Roll No</th>
+                <th class="px-3 py-2 border">Subject</th>
+                <th class="px-3 py-2 border">Teacher</th>
+                <th class="px-3 py-2 border">Date</th>
+                <th class="px-3 py-2 border">Time</th>
+                <th class="px-3 py-2 border">Status</th>
             </tr>
             </thead>
 
             <tbody>
-            <tr th:each="a : ${records}" class="hover:bg-gray-50">
-
-                <td class="px-4 py-2 border" th:text="${a.userId}"></td>
-                <td class="px-4 py-2 border" th:text="${a.rollNo}"></td>
-                <td class="px-4 py-2 border" th:text="${a.userName}"></td>
-
-                <td class="px-4 py-2 border" th:text="${a.classId}"></td>
-                <td class="px-4 py-2 border" th:text="${a.subjectName}"></td>
-                <td class="px-4 py-2 border" th:text="${a.teacherName}"></td>
-
-                <td class="px-4 py-2 border" th:text="${a.date}"></td>
-                <td class="px-4 py-2 border" th:text="${a.timestamp}"></td>
-
-                <td class="px-4 py-2 border font-semibold"
+            <tr th:each="a : ${records.content}">
+                <td class="px-3 py-2 border" th:text="${a.userName}"></td>
+                <td class="px-3 py-2 border" th:text="${a.rollNo}"></td>
+                <td class="px-3 py-2 border" th:text="${a.subjectName}"></td>
+                <td class="px-3 py-2 border" th:text="${a.teacherName}"></td>
+                <td class="px-3 py-2 border" th:text="${a.date}"></td>
+                <td class="px-3 py-2 border" th:text="${a.timestamp}"></td>
+                <td class="px-3 py-2 border font-semibold"
                     th:text="${a.status}"
-                    th:classappend="
-                        ${a.status == 'PRESENT'} ? 'text-green-600' :
-                        (${a.status == 'ABSENT'} ? 'text-red-600' : 'text-gray-600')
-                    ">
+                    th:classappend="${a.status == 'PRESENT'} ? 'text-green-600' : 'text-red-600'">
                 </td>
             </tr>
 
-            <!-- EMPTY STATE -->
-            <tr th:if="${#lists.isEmpty(records)}">
-                <td colspan="9" class="text-center py-6 text-gray-500">
+            <tr th:if="${records.totalElements == 0}">
+                <td colspan="7" class="text-center py-6 text-gray-500">
                     No attendance records found.
                 </td>
             </tr>
@@ -133,7 +162,57 @@
         </table>
     </div>
 
+    <!-- PAGINATION -->
+    <div class="flex justify-between items-center mt-6">
+        <span class="text-sm text-gray-600">
+            Page <b th:text="${records.number + 1}"></b>
+            of <b th:text="${records.totalPages}"></b>
+        </span>
+
+        <div class="flex gap-2">
+            <a th:if="${records.hasPrevious()}"
+               th:href="@{/admin/attendance(page=${records.number - 1})}"
+               class="px-3 py-1 border rounded hover:bg-gray-100">
+                Prev
+            </a>
+
+            <a th:if="${records.hasNext()}"
+               th:href="@{/admin/attendance(page=${records.number + 1})}"
+               class="px-3 py-1 border rounded hover:bg-gray-100">
+                Next
+            </a>
+        </div>
+    </div>
+
 </div>
+
+<!-- ===================== -->
+<!-- AJAX: COURSE → BRANCH -->
+<!-- ===================== -->
+<script>
+    document.getElementById("courseSelect")
+        .addEventListener("change", function () {
+
+            const courseId = this.value;
+            const branchSelect = document.getElementById("branchSelect");
+
+            branchSelect.innerHTML =
+                "<option value=''>All Branches</option>";
+
+            if (!courseId) return;
+
+            fetch(`/admin/api/branches?courseId=` + courseId)
+                .then(r => r.json())
+                .then(data => {
+                    data.forEach(b => {
+                        const opt = document.createElement("option");
+                        opt.value = b.id;
+                        opt.textContent = b.code;
+                        branchSelect.appendChild(opt);
+                    });
+                });
+        });
+</script>
 
 </body>
 </html>

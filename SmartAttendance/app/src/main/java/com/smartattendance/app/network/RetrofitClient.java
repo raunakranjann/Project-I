@@ -6,8 +6,6 @@ import android.os.Build;
 import android.util.Log;
 
 import okhttp3.OkHttpClient;
-import okhttp3.Request;
-
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -43,39 +41,14 @@ public class RetrofitClient {
 
             Log.d("RETROFIT", "Base URL = " + baseUrl);
 
-            SharedPreferences prefs =
-                    appContext.getSharedPreferences(
-                            "login_prefs",
-                            Context.MODE_PRIVATE
-                    );
-
             OkHttpClient client = new OkHttpClient.Builder()
-                    .addInterceptor(chain -> {
-
-                        Request original = chain.request();
-                        String token = prefs.getString("auth_token", null);
-
-                        if (token != null && !token.isEmpty()) {
-                            Request request = original.newBuilder()
-                                    .addHeader(
-                                            "Authorization",
-                                            "Bearer " + token
-                                    )
-                                    .build();
-
-                            return chain.proceed(request);
-                        }
-
-                        return chain.proceed(original);
-                    })
+                    .addInterceptor(new TokenInterceptor(appContext))
                     .build();
 
             retrofit = new Retrofit.Builder()
                     .baseUrl(baseUrl)
                     .client(client)
-                    .addConverterFactory(
-                            GsonConverterFactory.create()
-                    )
+                    .addConverterFactory(GsonConverterFactory.create())
                     .build();
         }
 

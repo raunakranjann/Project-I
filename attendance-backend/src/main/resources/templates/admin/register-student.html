@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Register Student</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+
+<div class="max-w-4xl mx-auto mt-10 bg-white p-8 rounded-xl shadow">
+
+    <!-- HEADER -->
+    <div class="flex justify-between items-center border-b pb-4 mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Register Student</h1>
+        <a th:href="@{/admin/dashboard}"
+           class="bg-gray-700 text-white px-4 py-2 rounded">
+            Back
+        </a>
+    </div>
+
+    <!-- ERROR -->
+    <div th:if="${error}"
+         class="mb-4 bg-red-100 text-red-700 p-3 rounded text-center font-semibold"
+         th:text="${error}">
+    </div>
+
+    <!-- FORM -->
+    <form th:action="@{/admin/students/register}"
+          method="post"
+          enctype="multipart/form-data"
+          class="grid grid-cols-1 gap-5 max-w-xl mx-auto">
+
+        <!-- NAME -->
+        <input name="name"
+               placeholder="Student Name"
+               required
+               class="input"/>
+
+        <!-- ROLL -->
+        <input name="rollNo"
+               placeholder="Roll Number"
+               required
+               class="input"/>
+
+        <!-- PASSWORD -->
+        <input type="password"
+               name="password"
+               placeholder="Password"
+               required
+               class="input"/>
+
+        <!-- COURSE -->
+        <select name="courseId"
+                id="courseSelect"
+                required
+                class="input"
+                onchange="filterBranches()">
+            <option value="">Select Course</option>
+            <option th:each="c : ${courses}"
+                    th:value="${c.id}"
+                    th:text="${c.code}">
+            </option>
+        </select>
+
+        <!-- BRANCH -->
+        <select name="branchId"
+                id="branchSelect"
+                required
+                class="input">
+            <option value="">Select Branch</option>
+
+            <option th:each="b : ${branches}"
+                    th:value="${b.id}"
+                    th:text="${b.code}"
+                    th:attr="data-course=${b.course.id}">
+            </option>
+        </select>
+
+        <!-- ACADEMIC SESSION -->
+        <select name="academicSessionId"
+                id="sessionSelect"
+                required
+                class="input">
+            <option value="">Select Academic Session</option>
+            <option th:each="s : ${sessions}"
+                    th:value="${s.id}"
+                    th:text="${s.displayName}">
+            </option>
+        </select>
+
+        <!-- PHOTO -->
+        <input type="file"
+               name="photo"
+               accept="image/*"
+               required
+               class="input"/>
+
+        <!-- SUBMIT -->
+        <button class="bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700">
+            Register Student
+        </button>
+
+    </form>
+</div>
+
+<style>
+    .input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background-color: #ffffff;
+    }
+</style>
+
+<script>
+    function filterBranches() {
+        const courseId = document.getElementById("courseSelect").value;
+        const branchSelect = document.getElementById("branchSelect");
+
+        Array.from(branchSelect.options).forEach(opt => {
+            if (!opt.value) return;
+            opt.style.display =
+                opt.getAttribute("data-course") === courseId ? "block" : "none";
+        });
+
+        branchSelect.value = "";
+    }
+</script>
+
+</body>
+</html>

@@ -37,11 +37,11 @@ public class TeacherLoginActivity extends AppCompatActivity {
         loginBtn = findViewById(R.id.loginBtn);
         loader = findViewById(R.id.loader);
 
-        prefs = getSharedPreferences("login_prefs", MODE_PRIVATE);
+        prefs = getSharedPreferences("auth", MODE_PRIVATE);
 
         // ---------- AUTO LOGIN USING JWT ----------
         if (savedInstanceState == null) {
-            String token = prefs.getString("auth_token", null);
+            String token = prefs.getString("jwt", null);
             String role  = prefs.getString("role", null);
 
             if (token != null && "TEACHER".equals(role)) {
@@ -89,14 +89,15 @@ public class TeacherLoginActivity extends AppCompatActivity {
                         loader.setVisibility(View.GONE);
                         loginBtn.setEnabled(true);
 
-                        if (!response.isSuccessful() || response.body() == null) {
+                        if (response.body() == null) {
                             Toast.makeText(
                                     TeacherLoginActivity.this,
-                                    "Server error",
+                                    "Invalid server response",
                                     Toast.LENGTH_SHORT
                             ).show();
                             return;
                         }
+
 
                         TeacherLoginResponse res = response.body();
 
@@ -109,11 +110,10 @@ public class TeacherLoginActivity extends AppCompatActivity {
                         if (res.isSuccess() && res.getToken() != null) {
 
                             SharedPreferences.Editor editor = prefs.edit();
+                            editor.clear();
 
-                            // 🔐 SAVE JWT SESSION
-                            editor.putString("auth_token", res.getToken());
+                            editor.putString("jwt", res.getToken());
                             editor.putString("role", "TEACHER");
-
                             editor.apply();
 
                             Toast.makeText(

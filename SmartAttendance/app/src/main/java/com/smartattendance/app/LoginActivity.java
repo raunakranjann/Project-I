@@ -35,12 +35,12 @@ public class LoginActivity extends AppCompatActivity {
         loginBtn = findViewById(R.id.loginBtn);
         facultyLoginBtn = findViewById(R.id.facultyLoginBtn);
 
-        prefs = getSharedPreferences("login_prefs", MODE_PRIVATE);
+        prefs = getSharedPreferences("auth", MODE_PRIVATE);
         apiService = RetrofitClient.getApiService(this);
 
         /* ---------- AUTO LOGIN USING JWT ---------- */
         if (savedInstanceState == null) {
-            String token = prefs.getString("auth_token", null);
+            String token = prefs.getString("jwt", null);
             String role  = prefs.getString("role", null);
 
             if (token != null && role != null) {
@@ -85,22 +85,16 @@ public class LoginActivity extends AppCompatActivity {
                                 Call<StudentLoginResponse> call,
                                 Response<StudentLoginResponse> response) {
 
-                            if (response.isSuccessful()
-                                    && response.body() != null
-                                    && response.body().isSuccess()) {
+                            if (response.body() != null && response.body().isSuccess()) {
+
 
                                 StudentLoginResponse res = response.body();
 
                                 SharedPreferences.Editor editor = prefs.edit();
+                                editor.clear();
 
-                                // 🔐 CLEAR TEACHER SESSION (SAFETY)
-                                editor.remove("teacher_id");
-
-                                // 🔐 SAVE JWT SESSION (ALWAYS)
-                                editor.putString("auth_token", res.getToken());
+                                editor.putString("jwt", res.getToken());
                                 editor.putString("role", "STUDENT");
-                                editor.putLong("student_id", res.getStudentId());
-
                                 editor.apply();
 
                                 Intent i = new Intent(
@@ -120,6 +114,7 @@ public class LoginActivity extends AppCompatActivity {
                                         Toast.LENGTH_SHORT
                                 ).show();
                             }
+
                         }
 
                         @Override

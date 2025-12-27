@@ -56,7 +56,7 @@ public class DashboardActivity extends AppCompatActivity {
 
         logoutBtn.setOnClickListener(v -> {
             SharedPreferences prefs =
-                    getSharedPreferences("login_prefs", MODE_PRIVATE);
+                    getSharedPreferences("auth", MODE_PRIVATE);
 
             prefs.edit().clear().apply();
 
@@ -112,7 +112,7 @@ public class DashboardActivity extends AppCompatActivity {
                         List<ClassSessionModel> classes = response.body();
 
                         if (classes.isEmpty()) {
-                            emptyText.setText("No active classes right now");
+                            emptyText.setText("No active or upcoming classes");
                             emptyText.setVisibility(View.VISIBLE);
                             return;
                         }

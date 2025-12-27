@@ -2,9 +2,9 @@ package com.attendance.backend.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,6 +24,25 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
     }
 
+    // =====================================================
+    // 🚫 DO NOT APPLY JWT FILTER ON THESE PATHS
+    // =====================================================
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+
+        return path.equals("/auth/student/login")
+                || path.equals("/api/teacher/login")
+                || path.startsWith("/admin")
+                || path.startsWith("/administration")
+                || path.startsWith("/css")
+                || path.startsWith("/js")
+                || path.startsWith("/images");
+    }
+
+    // =====================================================
+    // JWT AUTHENTICATION
+    // =====================================================
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -31,33 +50,60 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String header = request.getHeader("Authorization");
+        // 🔒 Do NOT override existing authentication
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
 
-        if (header != null && header.startsWith("Bearer ")) {
+            String token = extractToken(request);
 
-            String token = header.substring(7);
-
-            if (jwtUtil.isTokenValid(token)) {
+            if (token != null && !token.isBlank() && jwtUtil.isTokenValid(token)) {
 
                 Long userId = jwtUtil.extractUserId(token);
-                String role = jwtUtil.extractRole(token); // STUDENT / TEACHER
+                String role = jwtUtil.extractRole(token);
+                // ADMIN | ADMINISTRATION | TEACHER | STUDENT
 
-                UsernamePasswordAuthenticationToken auth =
+                UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 userId,
                                 null,
                                 List.of(new SimpleGrantedAuthority("ROLE_" + role))
                         );
 
-                auth.setDetails(
+                authentication.setDetails(
                         new WebAuthenticationDetailsSource()
                                 .buildDetails(request)
                 );
 
-                SecurityContextHolder.getContext().setAuthentication(auth);
+                SecurityContextHolder.getContext()
+                        .setAuthentication(authentication);
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    // =====================================================
+    // TOKEN EXTRACTION
+    // =====================================================
+    private String extractToken(HttpServletRequest request) {
+
+        // 1️⃣ Authorization header (Mobile / API)
+        String header = request.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            return header.substring(7).trim();
+        }
+
+        // 2️⃣ Cookie (Admin / Administration Web)
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("JWT".equals(cookie.getName())
+                        && cookie.getValue() != null
+                        && !cookie.getValue().isBlank()) {
+                    return cookie.getValue().trim();
+                }
+            }
+        }
+
+        return null;
     }
 }

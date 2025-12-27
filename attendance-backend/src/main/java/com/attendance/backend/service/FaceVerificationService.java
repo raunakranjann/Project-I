@@ -2,6 +2,7 @@ package com.attendance.backend.service;
 
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -16,7 +17,9 @@ public class FaceVerificationService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    private static final String AI_VERIFY_URL = "http://localhost:8000/verify";
+    @Value("${aifaceverifyurl}")
+    private String aiVerifyUrl;
+
 
     /**
      * @return Map containing:
@@ -53,10 +56,11 @@ public class FaceVerificationService {
 
             ResponseEntity<Map> response =
                     restTemplate.postForEntity(
-                            AI_VERIFY_URL,
+                            aiVerifyUrl,
                             requestEntity,
                             Map.class
                     );
+
 
             if (response.getBody() == null) {
                 return Map.of(

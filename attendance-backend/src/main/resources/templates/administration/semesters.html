@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Semester Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+
+<div class="max-w-6xl mx-auto mt-10 bg-white p-8 rounded-xl shadow">
+
+    <!-- HEADER -->
+    <div class="flex justify-between items-center border-b pb-4 mb-6">
+        <h2 class="text-2xl font-bold">Semester Management</h2>
+
+        <a th:href="@{/administration/dashboard}"
+           class="bg-gray-700 text-white px-4 py-2 rounded">
+            Back
+        </a>
+    </div>
+
+    <!-- FLASH -->
+    <div th:if="${success}"
+         class="mb-4 bg-green-100 text-green-700 p-3 rounded text-center font-semibold"
+         th:text="${success}"></div>
+
+    <div th:if="${error}"
+         class="mb-4 bg-red-100 text-red-700 p-3 rounded text-center font-semibold"
+         th:text="${error}"></div>
+
+    <!-- CREATE FORM -->
+    <form method="post"
+          th:action="@{/administration/semesters}"
+          class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+
+        <!-- COURSE -->
+        <select name="courseId"
+                id="courseSelect"
+                required
+                class="input">
+            <option value="">Select Course</option>
+            <option th:each="c : ${courses}"
+                    th:value="${c.id}"
+                    th:text="${c.code}">
+            </option>
+        </select>
+
+        <!-- BRANCH (FILTERED BY COURSE) -->
+        <select name="branchId"
+                id="branchSelect"
+                required
+                class="input"
+                disabled>
+            <option value="">Select Branch</option>
+        </select>
+
+        <!-- ACADEMIC SESSION -->
+        <select name="academicSessionId"
+                required
+                class="input">
+            <option value="">Academic Session</option>
+            <option th:each="s : ${sessions}"
+                    th:value="${s.id}"
+                    th:text="${s.displayName}">
+            </option>
+        </select>
+
+        <!-- SEMESTER NUMBER -->
+        <input type="number"
+               name="number"
+               min="1"
+               placeholder="Semester No"
+               required
+               class="input"/>
+
+        <button
+                class="md:col-span-4 bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700">
+            Add Semester
+        </button>
+    </form>
+
+    <!-- SEMESTER TABLE -->
+    <table class="w-full border text-center">
+        <thead class="bg-gray-100">
+        <tr>
+            <th class="border p-2">Course</th>
+            <th class="border p-2">Branch</th>
+            <th class="border p-2">Session</th>
+            <th class="border p-2">Semester</th>
+            <th class="border p-2">Status</th>
+            <th class="border p-2">Action</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr th:each="s : ${semesters}">
+            <td class="border p-2" th:text="${s.course.code}"></td>
+            <td class="border p-2" th:text="${s.branch.code}"></td>
+            <td class="border p-2" th:text="${s.academicSession.displayName}"></td>
+            <td class="border p-2" th:text="'Sem ' + ${s.number}"></td>
+
+            <!-- STATUS -->
+            <td class="border p-2 font-semibold"
+                th:classappend="${s.active} ? 'text-green-600' : 'text-gray-500'"
+                th:text="${s.active ? 'ACTIVE' : 'INACTIVE'}">
+            </td>
+
+            <!-- ACTION -->
+            <td class="border p-2">
+                <form th:if="${!s.active}"
+                      th:action="@{/administration/semesters/{id}/activate(id=${s.id})}"
+                      method="post"
+                      onsubmit="return confirm(
+                        'Activate this semester?\n\nStudents will be promoted and old routines archived.'
+                      )">
+                    <button
+                            class="bg-green-600 text-white px-4 py-1 rounded font-semibold hover:bg-green-700">
+                        Activate
+                    </button>
+                </form>
+
+                <span th:if="${s.active}"
+                      class="text-green-700 font-semibold">
+                    Current
+                </span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+</div>
+
+<style>
+    .input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background-color: #ffffff;
+    }
+</style>
+
+<!-- =====================================================
+     COURSE → BRANCH FILTER (REAL-WORLD FIX)
+     ===================================================== -->
+<script>
+    const courseSelect = document.getElementById("courseSelect");
+    const branchSelect = document.getElementById("branchSelect");
+
+    courseSelect.addEventListener("change", () => {
+
+        const courseId = courseSelect.value;
+
+        branchSelect.innerHTML = '<option value="">Select Branch</option>';
+        branchSelect.disabled = true;
+
+        if (!courseId) return;
+
+        fetch(`/administration/branches/by-course?courseId=${courseId}`)
+            .then(res => res.json())
+            .then(branches => {
+
+                branches.forEach(b => {
+                    const opt = document.createElement("option");
+                    opt.value = b.id;
+                    opt.textContent = b.code;
+                    branchSelect.appendChild(opt);
+                });
+
+                branchSelect.disabled = false;
+            })
+            .catch(() => {
+                alert("Failed to load branches for selected course");
+            });
+    });
+</script>
+
+</body>
+</html>
